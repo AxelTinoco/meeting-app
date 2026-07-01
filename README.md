@@ -1,13 +1,49 @@
-Welcome to your new TanStack Start app! 
+# Gerundio · Salas
 
-# Getting Started
+App interna para ver disponibilidad y reservar salas físicas, usando Google Calendar
+(Calendar Resources de Google Workspace) como motor de disponibilidad y conflictos.
 
-To run this application:
+Stack: TanStack Start + TanStack Router (file-based) · Tailwind v4 · Cloudflare Workers.
+
+## Getting Started
 
 ```bash
 npm install
-npm run dev
+npm run dev   # http://localhost:3000
 ```
+
+Sin credenciales de Google, la app corre en **modo demo** con datos mock en memoria
+(banner amarillo en el dashboard). Todo el flujo (disponibilidad, crear/cancelar) funciona
+contra el mock.
+
+## Arquitectura
+
+- **`src/lib/calendar-service.ts`** — interfaz `CalendarService` que consumen las server
+  functions. `getCalendarService()` elige entre la implementación real y el mock según
+  si hay credenciales (`hasGoogleCredentials()`).
+- **`src/lib/mock/mock-service.ts`** — implementación en memoria (default en dev).
+- **`src/lib/google/`** — cliente real, compatible con Cloudflare Workers:
+  - `service-account.ts` firma el JWT con Web Crypto (RS256) e impersona al usuario
+    logueado vía domain-wide delegation (`sub`).
+  - `calendar-api.ts` llama a la REST API de Calendar con `fetch` (freebusy / insert /
+    delete / list). No usa `googleapis` para evitar fricción en Workers.
+- **`src/server/bookings.ts`** — server functions (`createServerFn`); único punto de
+  contacto del cliente con Google. Las credenciales nunca llegan al cliente.
+- **`src/lib/rooms.config.ts`** — salas (config estática v1).
+- **`src/lib/auth.ts`** — stub de sesión (`getCurrentUser`). TODO: OAuth con `hd=gerundio.mx`.
+
+## Conectar Google (salir de modo demo)
+
+1. Completa los prerrequisitos en Admin Console + Google Cloud (service account +
+   domain-wide delegation con los scopes de Calendar). Ver `.env.example`.
+2. Copia las vars a `.dev.vars` (dev) o usa `wrangler secret put` (prod):
+   `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_WORKSPACE_DOMAIN`.
+3. Reinicia. En cuanto haya credenciales, `getCalendarService()` usa la implementación real.
+
+## Roadmap pendiente
+
+Login OAuth restringido a dominio · vista semanal por sala (`/salas/$roomEmail`) ·
+vista "mis reservas" con cancelación · (v2) empaquetar con Tauri.
 
 # Building For Production
 
