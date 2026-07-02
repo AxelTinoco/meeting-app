@@ -1,5 +1,18 @@
+packages:
+  - .
+
+# pnpm 10 (Cloudflare CI) reads this key
+onlyBuiltDependencies:
+  - esbuild
+  - lightningcss
+  - workerd
+  - sharp
+  - unrs-resolver
+
+# pnpm 11+ (local) reads this key
 allowBuilds:
   esbuild: true
+  lightningcss: true
+  workerd: true
   sharp: true
   unrs-resolver: true
-  workerd: true
