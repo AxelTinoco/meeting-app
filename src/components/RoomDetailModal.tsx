@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CalendarPlus, Pencil, Trash2, Users, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
+import { GrndIcon } from './GrndIcon'
 import { BookingModal } from './BookingModal'
 import { RoomFormModal } from './RoomFormModal'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -24,10 +25,10 @@ const TYPE_LABEL: Record<MeetingType, string> = {
 }
 
 const TYPE_BADGE: Record<MeetingType, string> = {
-  interno: 'bg-violet-100 text-violet-700',
-  cliente: 'bg-amber-100 text-amber-700',
-  entrevista: 'bg-sky-100 text-sky-700',
-  otro: 'bg-slate-100 text-slate-600',
+  interno: 'badge-reservada',
+  cliente: 'badge-aviso',
+  entrevista: 'badge-info',
+  otro: 'badge-neutral',
 }
 
 /** Panel de la sala: sus reservas de hoy (editar/cancelar), nueva reserva y edición/borrado de la sala. */
@@ -49,22 +50,19 @@ export function RoomDetailModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-        onClick={onClose}
-      >
+      <div className="modal-overlay z-50" onClick={onClose}>
         <div
-          className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+          className="modal-panel flex max-h-[85vh] max-w-lg flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between border-b border-slate-100 p-6">
+          <div className="flex items-start justify-between border-b border-ink-100 p-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{room.name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+              <h2 className="text-xl font-bold text-ink-900">{room.name}</h2>
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
                 {room.capacity != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Users size={14} /> {room.capacity} personas
+                    <GrndIcon name="conexion" size={14} /> {room.capacity} personas
                   </span>
                 )}
                 {room.building && <span>{room.building}</span>}
@@ -74,7 +72,7 @@ export function RoomDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="btn-icon"
               aria-label="Cerrar"
             >
               <X size={18} />
@@ -82,18 +80,18 @@ export function RoomDetailModal({
           </div>
 
           {/* Acciones de la sala */}
-          <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-3">
+          <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
             <button
               type="button"
               onClick={() => setEditingRoom(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              className="btn-secondary px-3 py-1.5"
             >
-              <Pencil size={14} /> Editar sala
+              <GrndIcon name="transformando" size={14} /> Editar sala
             </button>
             <button
               type="button"
               onClick={() => setDeletingRoom(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
+              className="btn-danger-outline px-3 py-1.5"
             >
               <Trash2 size={14} /> Eliminar sala
             </button>
@@ -102,14 +100,16 @@ export function RoomDetailModal({
           {/* Lista de reservas de hoy */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">
+              <h3 className="text-sm font-semibold text-ink-700">
                 Reservas de hoy
               </h3>
-              <span className="text-xs text-slate-400">{roomBookings.length}</span>
+              <span className="text-xs text-ink-400">
+                {roomBookings.length}
+              </span>
             </div>
 
             {roomBookings.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+              <p className="card-empty px-4 py-8">
                 Sin reservas hoy. Esta sala está libre todo el día.
               </p>
             ) : (
@@ -117,22 +117,22 @@ export function RoomDetailModal({
                 {roomBookings.map((b) => (
                   <li
                     key={b.eventId}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-slate-900">
+                        <p className="truncate text-sm font-semibold text-ink-900">
                           {b.title}
                         </p>
                         {b.meetingType && (
                           <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_BADGE[b.meetingType]}`}
+                            className={`shrink-0 ${TYPE_BADGE[b.meetingType]}`}
                           >
                             {TYPE_LABEL[b.meetingType]}
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-ink-500">
                         {mxTimeLabel(b.startTime)} – {mxTimeLabel(b.endTime)}
                         {b.clientName ? ` · ${b.clientName}` : ''}
                       </p>
@@ -141,15 +141,15 @@ export function RoomDetailModal({
                       <button
                         type="button"
                         onClick={() => setEditingBooking(b)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        className="btn-icon"
                         aria-label="Editar reserva"
                       >
-                        <Pencil size={15} />
+                        <GrndIcon name="transformando" size={15} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setCancelTarget(b)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                        className="btn-icon-danger"
                         aria-label="Cancelar reserva"
                       >
                         <Trash2 size={15} />
@@ -162,13 +162,13 @@ export function RoomDetailModal({
           </div>
 
           {/* Footer: nueva reserva */}
-          <div className="border-t border-slate-100 p-4">
+          <div className="border-t border-ink-100 p-4">
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700"
+              className="btn-primary w-full"
             >
-              <CalendarPlus size={16} /> Nueva reserva
+              <GrndIcon name="sumando" size={16} /> Nueva reserva
             </button>
           </div>
         </div>

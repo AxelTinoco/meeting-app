@@ -1,5 +1,115 @@
+@import 'tailwindcss';
 
-@import "tailwindcss";
+/* ==========================================================================
+   Design system Gerundio
+   Rampas derivadas en OKLCH desde GRND_Assets.svg: se conserva el matiz de cada
+   color de marca y solo varía la luminosidad, de modo que el hex oficial aparece
+   EXACTO en un paso de la rampa y los demás pasos existen para lo que el neón no
+   puede hacer (texto, bordes, hovers).
+
+     Azul Gerundio  #465FFF -> brand-500      Rosa      #F425AE -> rosa-400
+     Lavanda        #D9DEFF -> brand-200      Aqua      #01FFB4 -> aqua-300
+     Negro          #000000 -> ink-950 (*)    Amarillo  #DDFF00 -> amarillo-200
+     Blanco         #FFFFFF -> white          Azul claro #7AF7FF -> cielo-200
+
+   (*) ink-950 es #0B0C14: el negro de marca con el mismo tinte frío que el resto
+   de los neutros. El #000000 puro sigue disponible como `black`.
+
+   Los neón viven arriba de su rampa porque son claros de verdad: sobre blanco no
+   alcanzan contraste de texto. Regla: neón = fondo con texto negro; para texto
+   sobre fondo claro se usan los pasos 500-800 del mismo matiz.
+   ========================================================================== */
+
+/* `static`: emite TODAS las variables aunque ninguna utilidad las use todavía.
+   Sin esto Tailwind hace tree-shaking del tema y `var(--color-ink-200)` en un
+   `style` inline (RoomMap) dejaría de resolver en cuanto nadie use la utilidad. */
+@theme static {
+  /* Azul Gerundio — color primario, acciones y estado "reservada" */
+  --color-brand-50: #f8faff;
+  --color-brand-100: #f1f5ff;
+  --color-brand-200: #d9deff; /* Lavanda de marca */
+  --color-brand-300: #c5d4ff;
+  --color-brand-400: #7f9cff;
+  --color-brand-500: #465fff; /* Azul Gerundio */
+  --color-brand-600: #2e3bd2;
+  --color-brand-700: #211fb4;
+  --color-brand-800: #140085;
+  --color-brand-900: #090058;
+  --color-brand-950: #02002a;
+
+  /* Rosa — estado "en curso" y acciones destructivas */
+  --color-rosa-50: #fff6fa;
+  --color-rosa-100: #ffedf6;
+  --color-rosa-200: #ffd6ea;
+  --color-rosa-300: #ffb1da;
+  --color-rosa-400: #f425ae; /* Rosa */
+  --color-rosa-500: #b5007f;
+  --color-rosa-600: #87005d;
+  --color-rosa-700: #690048;
+  --color-rosa-800: #45002e;
+  --color-rosa-900: #2b001b;
+  --color-rosa-950: #120009;
+
+  /* Aqua — disponibilidad */
+  --color-aqua-50: #eefff6;
+  --color-aqua-100: #deffee;
+  --color-aqua-200: #aeffd8;
+  --color-aqua-300: #01ffb4; /* Aqua */
+  --color-aqua-400: #00c187;
+  --color-aqua-500: #008b60;
+  --color-aqua-600: #006746;
+  --color-aqua-700: #004f35;
+  --color-aqua-800: #003321;
+  --color-aqua-900: #001f12;
+  --color-aqua-950: #000b05;
+
+  /* Azul claro — información neutra */
+  --color-cielo-50: #e6feff;
+  --color-cielo-100: #cbfcff;
+  --color-cielo-200: #7af7ff; /* Azul claro */
+  --color-cielo-300: #69e3eb;
+  --color-cielo-400: #37adb5;
+  --color-cielo-500: #007f85;
+  --color-cielo-600: #005d62;
+  --color-cielo-700: #00474b;
+  --color-cielo-800: #002e30;
+  --color-cielo-900: #001b1d;
+  --color-cielo-950: #00090a;
+
+  /* Amarillo — avisos y modo demo */
+  --color-amarillo-50: #f6ffdd;
+  --color-amarillo-100: #f0ffc1;
+  --color-amarillo-200: #ddff00; /* Amarillo */
+  --color-amarillo-300: #cae900;
+  --color-amarillo-400: #98b000;
+  --color-amarillo-500: #6d7f00;
+  --color-amarillo-600: #505d00;
+  --color-amarillo-700: #3d4800;
+  --color-amarillo-800: #262e00;
+  --color-amarillo-900: #161b00;
+  --color-amarillo-950: #060900;
+
+  /* Neutros — gris frío teñido con el matiz de la marca (270°), no gris puro */
+  --color-ink-50: #f8faff;
+  --color-ink-100: #f2f4fa;
+  --color-ink-200: #e5e7ed;
+  --color-ink-300: #d1d4da;
+  --color-ink-400: #9d9fa7;
+  --color-ink-500: #70727b;
+  --color-ink-600: #51545c;
+  --color-ink-700: #3e4047;
+  --color-ink-800: #26282e;
+  --color-ink-900: #16181d;
+  --color-ink-950: #0b0c14;
+}
+
+/* Alias semánticos: los componentes hablan de estados, no de colores.
+   Cambiar un estado de matiz se hace aquí, en un solo sitio. */
+@theme static {
+  --color-libre: var(--color-aqua-300);
+  --color-activa: var(--color-rosa-400);
+  --color-reservada: var(--color-brand-500);
+}
 
 * {
   box-sizing: border-box;
@@ -13,11 +123,140 @@ body,
 
 body {
   margin: 0;
+  color: var(--color-ink-950);
+  background: #fff;
 }
 
-@layer components {
-  .input {
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200;
-  }
+/* Foco visible de marca, consistente en toda la app. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
 }
 
+/* --------------------------------------------------------------------------
+   Componentes. Se declaran con `@utility` (no con `@layer components`) porque
+   en Tailwind v4 solo las utilidades registradas pueden componerse con @apply:
+   así `btn-primary` puede construirse sobre `btn` y `badge-libre` sobre `badge`.
+   -------------------------------------------------------------------------- */
+
+/* --- Iconos de marca ------------------------------------------------------
+   Los gerundios de Gerundio son raster (ver GrndIcon.tsx), así que se pintan
+   como máscara: el PNG solo aporta la silueta y el color sale de
+   `currentColor`. Con esto un icono de marca se comporta igual que uno
+   vectorial — hereda color en hover, en estado activo y sobre fondo oscuro.
+   -------------------------------------------------------------------------- */
+@utility grnd-icon {
+  display: inline-block;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask-image: var(--grnd-mask);
+  mask-image: var(--grnd-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* --- Formularios ---------------------------------------------------------- */
+@utility input {
+  @apply w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm text-ink-950 shadow-sm outline-none;
+  @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+}
+
+@utility field-label {
+  @apply mb-1 block text-sm font-medium text-ink-700;
+}
+
+/* --- Botones -------------------------------------------------------------- */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium;
+  @apply transition-colors disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn bg-brand-500 text-white shadow-sm hover:bg-brand-600;
+}
+
+@utility btn-secondary {
+  @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50;
+}
+
+@utility btn-ghost {
+  @apply btn text-ink-600 hover:bg-ink-100;
+}
+
+@utility btn-danger {
+  @apply btn bg-rosa-600 text-white hover:bg-rosa-500;
+}
+
+@utility btn-danger-outline {
+  @apply btn border border-rosa-300 bg-white text-rosa-600 hover:bg-rosa-50;
+}
+
+/* Botón de solo icono (cerrar, editar, eliminar en listas). */
+@utility btn-icon {
+  @apply rounded-md p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700;
+}
+
+@utility btn-icon-danger {
+  @apply rounded-md p-1.5 text-ink-400 transition-colors hover:bg-rosa-50 hover:text-rosa-600;
+}
+
+/* --- Superficies ---------------------------------------------------------- */
+@utility card {
+  @apply rounded-xl border border-ink-200 bg-white shadow-sm;
+}
+
+@utility card-empty {
+  @apply rounded-xl border border-dashed border-ink-200 text-center text-sm text-ink-500;
+}
+
+@utility modal-overlay {
+  @apply fixed inset-0 flex items-center justify-center bg-ink-950/50 p-4;
+}
+
+@utility modal-panel {
+  @apply w-full rounded-xl bg-white shadow-xl;
+}
+
+/* --- Badges de estado -----------------------------------------------------
+   Texto en el paso 700/800 sobre fondo 100 del mismo matiz: todos ≥ 8:1. */
+@utility badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
+
+@utility badge-libre {
+  @apply badge bg-aqua-100 text-aqua-800;
+}
+
+@utility badge-activa {
+  @apply badge bg-rosa-100 text-rosa-700;
+}
+
+@utility badge-reservada {
+  @apply badge bg-brand-100 text-brand-700;
+}
+
+@utility badge-info {
+  @apply badge bg-cielo-100 text-cielo-800;
+}
+
+@utility badge-aviso {
+  @apply badge bg-amarillo-100 text-amarillo-800;
+}
+
+@utility badge-neutral {
+  @apply badge bg-ink-100 text-ink-600;
+}
+
+/* Chip de neón sólido: el color de marca a plena saturación pide texto negro. */
+@utility chip-neon {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-black;
+}
+
+/* --- Mensajes ------------------------------------------------------------- */
+@utility alert-error {
+  @apply rounded-md bg-rosa-50 px-3 py-2 text-sm text-rosa-700;
+}

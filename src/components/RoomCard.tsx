@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, MapPin, CalendarPlus } from 'lucide-react'
+import { GrndIcon } from './GrndIcon'
 import { AvailabilityBar } from './AvailabilityBar'
 import { BookingModal } from './BookingModal'
 import { isBusyNow } from '../lib/availability'
@@ -16,19 +16,19 @@ export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
   const busyNow = isBusyNow(busy)
 
   return (
-    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="card flex flex-col p-5">
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">{room.name}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+          <h3 className="text-base font-semibold text-ink-900">{room.name}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
             {room.capacity != null && (
               <span className="inline-flex items-center gap-1">
-                <Users size={13} /> {room.capacity}
+                <GrndIcon name="conexion" size={13} /> {room.capacity}
               </span>
             )}
             {(room.building || room.floor) && (
               <span className="inline-flex items-center gap-1">
-                <MapPin size={13} />
+                <GrndIcon name="target" size={13} />
                 {[room.building, room.floor].filter(Boolean).join(' · ')}
               </span>
             )}
@@ -44,9 +44,9 @@ export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
       <button
         type="button"
         onClick={() => setModalOpen(true)}
-        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        className="btn-primary mt-4"
       >
-        <CalendarPlus size={15} /> Reservar
+        <GrndIcon name="sumando" size={15} /> Reservar
       </button>
 
       {modalOpen && (
@@ -62,12 +62,8 @@ export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
 
 function StatusBadge({ busyNow }: { busyNow: boolean }) {
   return busyNow ? (
-    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700">
-      Ocupada
-    </span>
+    <span className="badge-activa">Ocupada</span>
   ) : (
-    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-      Libre
-    </span>
+    <span className="badge-libre">Libre</span>
   )
 }

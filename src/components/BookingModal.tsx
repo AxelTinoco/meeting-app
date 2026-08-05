@@ -19,7 +19,12 @@ const MEETING_TYPES: { value: MeetingType; label: string }[] = [
   { value: 'otro', label: 'Otro' },
 ]
 
-export function BookingModal({ room, booking, onClose, onSaved }: BookingModalProps) {
+export function BookingModal({
+  room,
+  booking,
+  onClose,
+  onSaved,
+}: BookingModalProps) {
   const isEdit = booking != null
   const startParts = booking ? mxInputParts(booking.startTime) : null
   const endParts = booking ? mxInputParts(booking.endTime) : null
@@ -58,7 +63,9 @@ export function BookingModal({ room, booking, onClose, onSaved }: BookingModalPr
         endTime: mxISO(date, endTime),
       }
       if (isEdit) {
-        await updateBookingFn({ data: { ...payload, eventId: booking!.eventId } })
+        await updateBookingFn({
+          data: { ...payload, eventId: booking!.eventId },
+        })
       } else {
         await createBookingFn({ data: payload })
       }
@@ -76,25 +83,22 @@ export function BookingModal({ room, booking, onClose, onSaved }: BookingModalPr
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={onClose}
-    >
+    <div className="modal-overlay z-50" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        className="modal-panel max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-ink-900">
               {isEdit ? 'Editar reserva' : 'Reservar sala'}
             </h2>
-            <p className="text-sm text-slate-500">{room.name}</p>
+            <p className="text-sm text-ink-500">{room.name}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="btn-icon"
             aria-label="Cerrar"
           >
             <X size={18} />
@@ -179,31 +183,19 @@ export function BookingModal({ room, booking, onClose, onSaved }: BookingModalPr
               className="input"
             />
             {overCapacity && (
-              <p className="mt-1 text-xs text-amber-600">
+              <p className="mt-1 text-xs text-amarillo-600">
                 Excede la capacidad de la sala (informativo).
               </p>
             )}
           </Field>
 
-          {error && (
-            <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
-          )}
+          {error && <p className="alert-error">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-            >
+            <button type="button" onClick={onClose} className="btn-ghost">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
+            <button type="submit" disabled={submitting} className="btn-primary">
               {submitting
                 ? 'Guardando…'
                 : isEdit
@@ -217,10 +209,16 @@ export function BookingModal({ room, booking, onClose, onSaved }: BookingModalPr
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="field-label">{label}</span>
       {children}
     </label>
   )

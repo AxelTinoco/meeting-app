@@ -33,7 +33,9 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
         floor: floor.trim() || undefined,
       }
       if (isEdit) {
-        await updateRoomFn({ data: { ...payload, resourceEmail: room!.resourceEmail } })
+        await updateRoomFn({
+          data: { ...payload, resourceEmail: room!.resourceEmail },
+        })
       } else {
         await createRoomFn({ data: payload })
       }
@@ -51,27 +53,24 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-      onClick={onClose}
-    >
+    <div className="modal-overlay z-50" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        className="modal-panel max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-ink-900">
               {isEdit ? 'Editar sala' : 'Nueva sala'}
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-500">
               {isEdit ? room!.resourceEmail : 'Se agregará al mapa de salas'}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="btn-icon"
             aria-label="Cerrar"
           >
             <X size={18} />
@@ -119,26 +118,18 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             </Field>
           </div>
 
-          {error && (
-            <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
-          )}
+          {error && <p className="alert-error">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-            >
+            <button type="button" onClick={onClose} className="btn-ghost">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {submitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear sala'}
+            <button type="submit" disabled={submitting} className="btn-primary">
+              {submitting
+                ? 'Guardando…'
+                : isEdit
+                  ? 'Guardar cambios'
+                  : 'Crear sala'}
             </button>
           </div>
         </form>
@@ -147,10 +138,16 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="field-label">{label}</span>
       {children}
     </label>
   )

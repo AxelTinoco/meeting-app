@@ -15,28 +15,32 @@ export interface RoomStatusStyle {
   border: string
 }
 
-/** Paleta por estado (mismos tonos que el diseño: violeta / verde / neutro). */
+/**
+ * Paleta por estado, sobre los colores de marca (ver `src/styles.css`):
+ * rosa = ocupada ahora, azul Gerundio = reservada más tarde, aqua = libre.
+ * El punto usa el neón puro; el texto usa el paso oscuro del mismo matiz.
+ */
 export const ROOM_STATUS_STYLES: Record<RoomStatus, RoomStatusStyle> = {
   active: {
     label: 'ACTIVA',
-    dot: 'bg-violet-500',
-    text: 'text-violet-600',
-    tile: 'bg-violet-50/70',
-    border: 'border-violet-300',
+    dot: 'bg-rosa-400',
+    text: 'text-rosa-600',
+    tile: 'bg-rosa-50/70',
+    border: 'border-rosa-300',
   },
   reserved: {
     label: 'RESERVADA',
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-600',
-    tile: 'bg-emerald-50/70',
-    border: 'border-emerald-300',
+    dot: 'bg-brand-500',
+    text: 'text-brand-600',
+    tile: 'bg-brand-50/70',
+    border: 'border-brand-300',
   },
   free: {
     label: 'LIBRE',
-    dot: 'bg-slate-400',
-    text: 'text-slate-400',
-    tile: 'bg-slate-50/70',
-    border: 'border-slate-200',
+    dot: 'bg-aqua-300',
+    text: 'text-aqua-700',
+    tile: 'bg-aqua-50/70',
+    border: 'border-aqua-200',
   },
 }
 

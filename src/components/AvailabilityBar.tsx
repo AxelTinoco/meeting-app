@@ -12,17 +12,17 @@ export function AvailabilityBar({ busy }: AvailabilityBarProps) {
 
   return (
     <div className="select-none">
-      <div className="relative h-8 w-full overflow-hidden rounded-md bg-emerald-100">
+      <div className="relative h-8 w-full overflow-hidden rounded-md bg-aqua-100">
         {blocks.map((b, i) => (
           <div
             key={i}
-            className="absolute top-0 h-full bg-rose-400/80"
+            className="absolute top-0 h-full bg-rosa-400/80"
             style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%` }}
             title={`Ocupado ${formatHour(b.startHour)}–${formatHour(b.endHour)}`}
           />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+      <div className="mt-1 flex justify-between text-[10px] text-ink-400">
         {axis.map((h) => (
           <span key={h}>{h}h</span>
         ))}

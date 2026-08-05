@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react'
+import { GrndIcon } from './GrndIcon'
 import { ROOM_STATUS_STYLES, type RoomView } from '../lib/dashboard'
 import { mxTimeLabel } from '../lib/mexico-time'
 import type { Room } from '../lib/types'
@@ -30,9 +30,9 @@ export function RoomTile({ view, onSelect }: RoomTileProps) {
         width: `${pos.w}%`,
         height: `${pos.h}%`,
       }}
-      className={`group absolute rounded-2xl border-2 ${style.border} ${style.tile} text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-violet-400/50`}
+      className={`group absolute rounded-2xl border-2 ${style.border} ${style.tile} text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md`}
     >
-      <span className="absolute -top-3.5 left-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-800 shadow-sm">
+      <span className="absolute -top-3.5 left-4 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-950 shadow-sm">
         <span className={`size-2 rounded-full ${style.dot}`} />
         {room.name}
         <span className={`text-[10px] font-bold tracking-wide ${style.text}`}>
@@ -41,10 +41,10 @@ export function RoomTile({ view, onSelect }: RoomTileProps) {
       </span>
 
       <span className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2">
-        <span className="truncate text-xs text-slate-500">{caption}</span>
+        <span className="truncate text-xs text-ink-500">{caption}</span>
         {room.capacity != null && (
-          <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-400">
-            <Users size={12} /> {room.capacity}
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs text-ink-400">
+            <GrndIcon name="conexion" size={12} /> {room.capacity}
           </span>
         )}
       </span>

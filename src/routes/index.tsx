@@ -22,7 +22,7 @@ function Dashboard() {
   const upcoming = buildUpcoming(bookings, rooms, now)
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white text-slate-900">
+    <div className="flex h-screen w-full overflow-hidden bg-white text-ink-900">
       <Sidebar user={user} />
       <RoomMap
         rooms={rooms}
