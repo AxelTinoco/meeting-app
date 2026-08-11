@@ -9,29 +9,61 @@
 ## ¿Qué es esto?
 
 Estoy construyendo una app interna para que el equipo vea qué salas están libres y las
-reserve, conectada a Google Calendar. Para conectarla necesito hacer una configuración
-técnica en las consolas de Google, pero **esa configuración solo la puede hacer un
-administrador del Workspace**.
+reserve, conectada a Google Calendar. Ya hice todo lo que se podía hacer sin ser Súper
+administrador:
 
-En lugar de pedirte que hagas los pasos técnicos (son varios y detallados), lo más simple
-es que **me des acceso de administrador temporalmente** y yo hago toda la configuración.
-Cuando termine (mismo día), **puedes quitarme el acceso** sin problema: la app sigue
-funcionando.
+- Las 3 salas están dadas de alta como recursos de calendario en el edificio Gerundio-HQ
+  (El Taller, La pecera, Salita Azul).
+- La cuenta de servicio que usará la app ya existe en Google Cloud
+  (`salas-app@sala-juntas-504623.iam.gserviceaccount.com`).
+
+**Falta un solo paso, y ese sí exige el rol de Súper administrador.** Elige la opción que
+te sea más cómoda: la A te toma 2 minutos y no me das ningún acceso.
 
 ---
 
-## Lo único que necesito que hagas
+## Opción A (recomendada): haz tú el único paso que falta
+
+1. Entra a **https://admin.google.com/ac/owl/domainwidedelegation**
+   (Seguridad → Control de acceso y datos → Controles de API → *Administrar delegación en
+   todo el dominio*).
+2. Clic en **Añadir nueva**.
+3. Llena los dos campos exactamente así:
+
+   **ID de cliente:**
+   ```
+   116613007207476438004
+   ```
+
+   **Ámbitos de OAuth** (los dos, separados por coma, sin espacios):
+   ```
+   https://www.googleapis.com/auth/calendar.events,https://www.googleapis.com/auth/calendar.readonly
+   ```
+4. Clic en **Autorizar**. Avísame y yo sigo (tarda unos minutos en activarse).
+
+Esos dos permisos dejan que la app lea disponibilidad y cree/borre **eventos de calendario**.
+No dan acceso a correo, archivos, contraseñas ni a ningún otro dato del equipo.
+
+---
+
+## Opción B: dame Súper administrador temporalmente
+
+Si prefieres no hacerlo tú, asígname el rol y yo ejecuto el paso de arriba. Cuando termine
+(mismo día) **puedes quitármelo**: la app sigue funcionando porque la autorización ya
+quedó creada.
+
+### Lo que necesito que hagas
 
 Asignarme el rol de **Súper administrador** a mi cuenta:
 
-**axel@gerundio.mx**  ← (cambia esto por el correo correcto)
+**axel@gerundio.com.mx**  ← (cambia esto por el correo correcto)
 
 ### Pasos exactos
 
 1. Entra a **https://admin.google.com** con tu cuenta de administrador.
 2. En el menú de la izquierda, ve a **Directorio → Usuarios**.
    (o abre directo: https://admin.google.com/ac/users)
-3. Busca y haz clic en mi usuario: **axel@gerundio.mx**.
+3. Busca y haz clic en mi usuario: **axel@gerundio.com.mx**.
 4. En la página de mi usuario, haz clic en la tarjeta que dice
    **"Roles y privilegios de administrador"**.
 5. Haz clic en **"Asignar roles"** (o el lápiz de editar).
@@ -55,15 +87,8 @@ dominio) **exige** el rol de Súper administrador; no existe un permiso más chi
 Por eso pido el rol completo, pero temporal.
 
 **¿Prefieres hacerlo tú en vez de darme acceso?**
-También se puede: en ese caso yo te paso la guía técnica paso a paso y tú la ejecutas
-conmigo en una llamada de ~15 min. Solo dime y te la mando.
+Sí: es la **Opción A** de arriba, son 2 minutos y no me das ningún acceso.
 
----
-
-## Qué haré yo una vez con acceso (referencia, no necesitas hacerlo)
-
-1. Dar de alta las salas físicas como *recursos de calendario*.
-2. Crear una *cuenta de servicio* en Google Cloud con *delegación en todo el dominio*.
-3. Autorizar esa cuenta con permisos de solo lectura/eventos de Calendar.
-
-Nada de esto borra ni modifica correos, eventos existentes ni datos del equipo.
+**¿Esto puede romper o borrar algo?**
+No. Autorizar la delegación no modifica correos, eventos existentes ni datos del equipo:
+solo permite que la app cree y consulte eventos en los calendarios de las salas.

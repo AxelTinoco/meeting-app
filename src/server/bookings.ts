@@ -9,6 +9,34 @@ import type { BookingInput, MeetingType } from '../lib/types'
 
 const MEETING_TYPES: MeetingType[] = ['interno', 'cliente', 'entrevista', 'otro']
 
+/** Tope defensivo: Google acepta cientos, pero una sala de juntas no necesita tantos. */
+const MAX_ATTENDEES = 50
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Valida y normaliza la lista de invitados. Acepta internos y externos por igual. */
+function validateAttendees(value: unknown): string[] | undefined {
+  if (value == null) return undefined
+  if (!Array.isArray(value)) throw new Error('Lista de invitados inválida.')
+
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of value) {
+    const email = String(raw ?? '').trim().toLowerCase()
+    if (!email) continue
+    if (!EMAIL_RE.test(email)) {
+      throw new Error(`"${email}" no es un correo válido.`)
+    }
+    if (seen.has(email)) continue
+    seen.add(email)
+    out.push(email)
+  }
+  if (out.length > MAX_ATTENDEES) {
+    throw new Error(`Máximo ${MAX_ATTENDEES} invitados por reserva.`)
+  }
+  return out.length ? out : undefined
+}
+
 /** Valida y normaliza el payload de creación de reserva. Lanza en input inválido. */
 function validateBookingInput(data: unknown): BookingInput {
   if (typeof data !== 'object' || data === null) {
@@ -47,6 +75,7 @@ function validateBookingInput(data: unknown): BookingInput {
     endTime,
     meetingType,
     attendeeCount,
+    attendees: validateAttendees(d.attendees),
     clientName,
     // El organizer siempre proviene de la sesión del servidor, nunca del cliente.
     organizerEmail: getCurrentUser().email,

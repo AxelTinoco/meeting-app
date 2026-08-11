@@ -17,8 +17,10 @@ import type {
 import {
   freebusyQuery,
   insertEvent,
+  patchEvent,
   deleteEvent,
   listRoomEvents,
+  listMyEvents,
 } from './google/calendar-api'
 import { mockService } from './mock/mock-service'
 
@@ -55,31 +57,42 @@ const realService: CalendarService = {
   createBooking(input) {
     return insertEvent(input)
   },
-  async updateBooking(eventId, input) {
-    // La Calendar REST API aún no está expuesta con patch aquí: reemplazamos
-    // el evento (borrar + crear) usando al organizador como subject de impersonation.
-    await deleteEvent(input.organizerEmail, input.roomEmail, eventId)
-    return insertEvent(input)
+  updateBooking(eventId, input) {
+    // PATCH en vez de borrar+crear: conserva el id del evento y las respuestas que los
+    // invitados ya hayan dado.
+    return patchEvent(eventId, input)
   },
   cancelBooking(eventId, roomEmail, subject) {
     return deleteEvent(subject, roomEmail, eventId)
   },
   async getMyBookings(userEmail, range) {
     const rooms = listRoomsConfig()
-    const perRoom = await Promise.all(
-      rooms.map((r) => listRoomEvents(userEmail, r.resourceEmail, range)),
+    const bookings = await listMyEvents(
+      userEmail,
+      range,
+      rooms.map((r) => r.resourceEmail),
     )
-    return perRoom
-      .flat()
-      .filter((b) => b.organizerEmail.toLowerCase() === userEmail.toLowerCase())
-      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    return bookings.sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime))
   },
   async getDayBookings(range, subject) {
     const rooms = listRoomsConfig()
-    const perRoom = await Promise.all(
-      rooms.map((r) => listRoomEvents(subject, r.resourceEmail, range)),
+    const roomEmails = rooms.map((r) => r.resourceEmail)
+
+    // Los calendarios de las salas son la fuente de verdad, pero tardan ~15s en registrar
+    // una reserva nueva. Unimos el calendario del usuario para que la suya aparezca al
+    // instante; si ya venía de la sala, gana esa copia (es la confirmada).
+    const [perRoom, mine] = await Promise.all([
+      Promise.all(roomEmails.map((email) => listRoomEvents(subject, email, range))),
+      listMyEvents(subject, range, roomEmails, false),
+    ])
+
+    const byId = new Map<string, Booking>()
+    for (const booking of mine) byId.set(booking.eventId, booking)
+    for (const booking of perRoom.flat()) byId.set(booking.eventId, booking)
+
+    return [...byId.values()].sort(
+      (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
     )
-    return perRoom.flat().sort((a, b) => a.startTime.localeCompare(b.startTime))
   },
   async createRoom() {
     throw new Error(ROOMS_NOT_SUPPORTED)

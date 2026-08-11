@@ -5,9 +5,11 @@
 // (best-effort). Reinicia al reiniciar el servidor: es intencional para desarrollo.
 
 import { listRoomsConfig, ROOMS } from '../rooms.config'
+import { GOOGLE_WORKSPACE_DOMAIN } from '../constants'
 import { mxISODate, mxDateTime } from '../mexico-time'
 import type {
   Booking,
+  BookingAttendee,
   BookingInput,
   Room,
   RoomAvailability,
@@ -15,6 +17,22 @@ import type {
   RoomMapPosition,
 } from '../types'
 import type { CalendarService } from '../calendar-service'
+
+const DEMO_ORGANIZER = `demo@${GOOGLE_WORKSPACE_DOMAIN}`
+
+/**
+ * Los invitados llegan como correos y se guardan enriquecidos, igual que en el servicio real.
+ * En la demo nadie responde la invitación, así que todos quedan en `needsAction`.
+ */
+function toAttendees(emails: string[] | undefined): BookingAttendee[] | undefined {
+  if (!emails?.length) return undefined
+  const domain = `@${GOOGLE_WORKSPACE_DOMAIN.toLowerCase()}`
+  return emails.map((email) => ({
+    email,
+    response: 'needsAction' as const,
+    external: !email.toLowerCase().endsWith(domain),
+  }))
+}
 
 // Copia mutable: en la demo las salas se crean/editan/eliminan en memoria.
 const rooms: Room[] = listRoomsConfig()
@@ -33,7 +51,7 @@ function ensureSeed(): void {
   seeded = true
 
   const today = mxISODate()
-  const [volcanes, cenote, desierto] = ROOMS
+  const [taller, pecera, salita] = ROOMS
 
   const seeds: Array<{
     room: string
@@ -43,14 +61,14 @@ function ensureSeed(): void {
     booking: Partial<Booking>
   }> = [
     {
-      room: volcanes.resourceEmail,
+      room: taller.resourceEmail,
       title: 'Daily Standup',
       start: [9, 0],
       end: [9, 30],
-      booking: { meetingType: 'interno', organizerEmail: 'demo@gerundio.mx' },
+      booking: { meetingType: 'interno', organizerEmail: DEMO_ORGANIZER },
     },
     {
-      room: volcanes.resourceEmail,
+      room: taller.resourceEmail,
       title: 'Reunión con Volaris',
       start: [13, 0],
       end: [14, 0],
@@ -58,22 +76,22 @@ function ensureSeed(): void {
         meetingType: 'cliente',
         clientName: 'Volaris',
         attendeeCount: 6,
-        organizerEmail: 'demo@gerundio.mx',
+        organizerEmail: DEMO_ORGANIZER,
       },
     },
     {
-      room: cenote.resourceEmail,
+      room: pecera.resourceEmail,
       title: 'Entrevista — Diseñador UX',
       start: [11, 0],
       end: [12, 0],
-      booking: { meetingType: 'entrevista', organizerEmail: 'ana@gerundio.mx' },
+      booking: { meetingType: 'entrevista', organizerEmail: `ana@${GOOGLE_WORKSPACE_DOMAIN}` },
     },
     {
-      room: desierto.resourceEmail,
+      room: salita.resourceEmail,
       title: 'Planning Q3',
       start: [16, 0],
       end: [17, 30],
-      booking: { meetingType: 'interno', organizerEmail: 'demo@gerundio.mx' },
+      booking: { meetingType: 'interno', organizerEmail: DEMO_ORGANIZER },
     },
   ]
 
@@ -84,7 +102,7 @@ function ensureSeed(): void {
       title: s.title,
       startTime: mxDateTime(today, s.start[0], s.start[1]),
       endTime: mxDateTime(today, s.end[0], s.end[1]),
-      organizerEmail: s.booking.organizerEmail ?? 'demo@gerundio.mx',
+      organizerEmail: s.booking.organizerEmail ?? DEMO_ORGANIZER,
       clientName: s.booking.clientName,
       meetingType: s.booking.meetingType,
       attendeeCount: s.booking.attendeeCount,
@@ -96,7 +114,7 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
   return aStart < bEnd && bStart < aEnd
 }
 
-/** Deriva un resourceEmail único a partir del nombre de la sala (ej. "Sala Bosque" → sala-bosque@gerundio.mx). */
+/** Deriva un resourceEmail único a partir del nombre de la sala (ej. "Sala Bosque" → sala-bosque@<dominio>). */
 function deriveRoomEmail(name: string): string {
   const base =
     name
@@ -105,10 +123,10 @@ function deriveRoomEmail(name: string): string {
       .replace(/[̀-ͯ]/g, '') // quita acentos
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'sala'
-  let email = `${base}@gerundio.mx`
+  let email = `${base}@${GOOGLE_WORKSPACE_DOMAIN}`
   let n = 2
   while (rooms.some((r) => r.resourceEmail === email)) {
-    email = `${base}-${n}@gerundio.mx`
+    email = `${base}-${n}@${GOOGLE_WORKSPACE_DOMAIN}`
     n += 1
   }
   return email
@@ -203,6 +221,9 @@ export const mockService: CalendarService = {
       clientName: input.clientName,
       meetingType: input.meetingType,
       attendeeCount: input.attendeeCount,
+      attendees: toAttendees(input.attendees),
+      // En la demo no hay recurso real que confirme: damos la sala por aceptada.
+      roomResponse: 'accepted',
       startTime: input.startTime,
       endTime: input.endTime,
       organizerEmail: input.organizerEmail,
@@ -233,6 +254,9 @@ export const mockService: CalendarService = {
       clientName: input.clientName,
       meetingType: input.meetingType,
       attendeeCount: input.attendeeCount,
+      attendees: toAttendees(input.attendees),
+      // En la demo no hay recurso real que confirme: damos la sala por aceptada.
+      roomResponse: 'accepted',
       startTime: input.startTime,
       endTime: input.endTime,
     }

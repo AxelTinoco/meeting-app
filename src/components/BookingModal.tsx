@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { createBookingFn, updateBookingFn } from '../server/bookings'
+import { AttendeesInput } from './AttendeesInput'
 import { mxISO, mxISODate, mxInputParts } from '../lib/mexico-time'
 import type { Booking, MeetingType, Room } from '../lib/types'
 
@@ -37,16 +38,22 @@ export function BookingModal({
   const [attendeeCount, setAttendeeCount] = useState(
     booking?.attendeeCount != null ? String(booking.attendeeCount) : '',
   )
+  const [attendees, setAttendees] = useState<string[]>(
+    booking?.attendees?.map((a) => a.email) ?? [],
+  )
   const [date, setDate] = useState(startParts?.date ?? mxISODate())
   const [startTime, setStartTime] = useState(startParts?.time ?? '10:00')
   const [endTime, setEndTime] = useState(endParts?.time ?? '11:00')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const overCapacity =
-    room.capacity != null &&
-    attendeeCount !== '' &&
-    Number(attendeeCount) > room.capacity
+  // Gente en la sala: el organizador más los invitados, o el número que se haya escrito
+  // a mano si es mayor (juntas donde el cliente trae gente que no se invita por correo).
+  const headcount = Math.max(
+    attendees.length + 1,
+    attendeeCount === '' ? 0 : Number(attendeeCount),
+  )
+  const overCapacity = room.capacity != null && headcount > room.capacity
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,6 +66,7 @@ export function BookingModal({
         meetingType,
         clientName: meetingType === 'cliente' ? clientName.trim() : undefined,
         attendeeCount: attendeeCount ? Number(attendeeCount) : undefined,
+        attendees,
         startTime: mxISO(date, startTime),
         endTime: mxISO(date, endTime),
       }
@@ -172,19 +180,28 @@ export function BookingModal({
             </Field>
           </div>
 
+          <Field label="Invitar a">
+            <AttendeesInput value={attendees} onChange={setAttendees} />
+          </Field>
+
           <Field
-            label={`Asistentes${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
+            label={`Personas en la sala${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
           >
             <input
               type="number"
               min={1}
               value={attendeeCount}
               onChange={(e) => setAttendeeCount(e.target.value)}
+              placeholder={String(attendees.length + 1)}
               className="input"
             />
-            {overCapacity && (
-              <p className="mt-1 text-xs text-amarillo-600">
-                Excede la capacidad de la sala (informativo).
+            {overCapacity ? (
+              <p className="mt-1 text-xs text-amarillo-700">
+                {headcount} personas exceden la capacidad de la sala (informativo).
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-ink-500">
+                Opcional. Úsalo si van más personas de las que invitaste por correo.
               </p>
             )}
           </Field>

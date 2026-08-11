@@ -10,7 +10,7 @@ export interface RoomMapPosition {
 }
 
 export interface Room {
-  /** ID de la sala = email del recurso en Calendar (ej. sala-a@gerundio.mx) */
+  /** ID de la sala = email del recurso en Calendar (ej. c_1885…@resource.calendar.google.com) */
   resourceEmail: string
   name: string
   capacity?: number
@@ -37,7 +37,13 @@ export interface BookingInput {
   /** Campo custom para reservas de cliente externo (se guarda en extendedProperties). */
   clientName?: string
   meetingType?: MeetingType
+  /** Headcount informativo (para juntas donde no se invita a cada persona por correo). */
   attendeeCount?: number
+  /**
+   * Correos invitados a la junta. Pueden ser del dominio o externos; Google les manda
+   * la invitación. NO incluye al organizador ni a la sala: esos se agregan solos.
+   */
+  attendees?: string[]
   /** ISO 8601 con offset (ej. 2026-07-01T13:00:00-06:00) */
   startTime: string
   /** ISO 8601 con offset */
@@ -54,11 +60,28 @@ export interface Booking {
   clientName?: string
   meetingType?: MeetingType
   attendeeCount?: number
+  /** Invitados (sin la sala ni el organizador), con su respuesta a la invitación. */
+  attendees?: BookingAttendee[]
+  /**
+   * Respuesta de la sala a la invitación. Google tarda ~15s en contestar, así que una
+   * reserva recién hecha aparece como `needsAction` hasta que el recurso confirma.
+   */
+  roomResponse?: AttendeeResponse
   startTime: string
   endTime: string
   organizerEmail: string
   /** Link al evento en la UI de Google Calendar (si aplica). */
   htmlLink?: string
+}
+
+export type AttendeeResponse = 'accepted' | 'declined' | 'tentative' | 'needsAction'
+
+export interface BookingAttendee {
+  email: string
+  displayName?: string
+  response: AttendeeResponse
+  /** true si el correo no pertenece al dominio de Gerundio. */
+  external: boolean
 }
 
 /** Intervalo ocupado devuelto por freebusy. */

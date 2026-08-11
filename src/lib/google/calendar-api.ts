@@ -1,10 +1,20 @@
 // Cliente REST de Google Calendar (compatible con Workers, sin `googleapis`).
 // Todas las llamadas impersonan al usuario logueado vía `subject`.
+//
+// Modelo de datos: la junta se crea en el calendario del ORGANIZADOR y la sala entra como
+// asistente de tipo recurso (`resource: true`). Es el patrón estándar de Google para reserva
+// de salas y es lo que permite invitar gente: el organizador es la persona, no la sala, así
+// que las invitaciones y las respuestas (RSVP) fluyen hacia quien reservó.
+//
+// La copia del evento que ve el calendario de la sala comparte el mismo `id`, por eso el
+// dashboard puede seguir leyendo la ocupación sala por sala.
 
-import { CALENDAR_SCOPES } from '../constants'
+import { CALENDAR_SCOPES, GOOGLE_WORKSPACE_DOMAIN } from '../constants'
 import { MX_TZ } from '../mexico-time'
 import type {
+  AttendeeResponse,
   Booking,
+  BookingAttendee,
   BookingInput,
   BusyInterval,
   DateRange,
@@ -15,13 +25,16 @@ import { getAccessToken } from './service-account'
 
 const CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3'
 
-async function authedFetch(
+/** Calendario propio del usuario impersonado. Ahí viven las juntas que él organiza. */
+const PRIMARY = 'primary'
+
+async function rawFetch(
   subject: string,
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
   const token = await getAccessToken(subject, CALENDAR_SCOPES)
-  const res = await fetch(`${CALENDAR_BASE}${path}`, {
+  return fetch(`${CALENDAR_BASE}${path}`, {
     ...init,
     headers: {
       authorization: `Bearer ${token}`,
@@ -29,6 +42,14 @@ async function authedFetch(
       ...init.headers,
     },
   })
+}
+
+async function authedFetch(
+  subject: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const res = await rawFetch(subject, path, init)
   if (!res.ok) {
     throw new Error(
       `Calendar API ${init.method ?? 'GET'} ${path} falló (${res.status}): ${await res.text()}`,
@@ -39,36 +60,156 @@ async function authedFetch(
 
 // --- Tipos parciales de la respuesta de Calendar que nos interesan ---
 
-interface GCalEventDateTime {
+interface GCalDateTime {
   dateTime?: string
   date?: string
   timeZone?: string
+}
+
+interface GCalAttendee {
+  email?: string
+  displayName?: string
+  resource?: boolean
+  organizer?: boolean
+  responseStatus?: string
 }
 
 interface GCalEvent {
   id: string
   summary?: string
   htmlLink?: string
-  start?: GCalEventDateTime
-  end?: GCalEventDateTime
+  status?: string
+  start?: GCalDateTime
+  end?: GCalDateTime
   organizer?: { email?: string }
   creator?: { email?: string }
-  extendedProperties?: { private?: Record<string, string> }
+  attendees?: GCalAttendee[]
+  extendedProperties?: {
+    private?: Record<string, string>
+    shared?: Record<string, string>
+  }
 }
 
-function eventToBooking(roomEmail: string, ev: GCalEvent): Booking {
-  const priv = ev.extendedProperties?.private ?? {}
+const RESPONSES: AttendeeResponse[] = [
+  'accepted',
+  'declined',
+  'tentative',
+  'needsAction',
+]
+
+const MEETING_TYPES: MeetingType[] = ['interno', 'cliente', 'entrevista', 'otro']
+
+/** `extendedProperties` es texto libre: cualquiera con acceso al evento pudo escribir ahí. */
+function toMeetingType(value: string | undefined): MeetingType | undefined {
+  return MEETING_TYPES.includes(value as MeetingType)
+    ? (value as MeetingType)
+    : undefined
+}
+
+function isExternal(email: string): boolean {
+  return !email.toLowerCase().endsWith(`@${GOOGLE_WORKSPACE_DOMAIN.toLowerCase()}`)
+}
+
+function toBookingAttendee(a: GCalAttendee): BookingAttendee {
+  const email = a.email ?? ''
+  const response = RESPONSES.includes(a.responseStatus as AttendeeResponse)
+    ? (a.responseStatus as AttendeeResponse)
+    : 'needsAction'
+  return {
+    email,
+    displayName: a.displayName || undefined,
+    response,
+    external: isExternal(email),
+  }
+}
+
+function eventToBooking(ev: GCalEvent, fallbackRoomEmail?: string): Booking {
+  // Los metadatos van en `shared` para que sobrevivan en la copia del evento que ve la sala
+  // (`private` solo existe en la copia del creador). Leemos ambos porque los eventos creados
+  // antes de este cambio usaban `private`.
+  // El tipo explícito refleja que cualquier clave puede faltar: un índice de
+  // `Record<string, string>` miente diciendo que siempre hay valor.
+  const meta: Record<string, string | undefined> = {
+    ...(ev.extendedProperties?.private ?? {}),
+    ...(ev.extendedProperties?.shared ?? {}),
+  }
+
+  const all = ev.attendees ?? []
+  const room = all.find((a) => a.resource)
+  const roomEmail = room?.email ?? fallbackRoomEmail ?? ''
+  const organizerEmail = ev.organizer?.email ?? ev.creator?.email ?? ''
+
+  const attendees = all
+    .filter(
+      (a) =>
+        !a.resource &&
+        a.email &&
+        a.email.toLowerCase() !== organizerEmail.toLowerCase(),
+    )
+    .map(toBookingAttendee)
+
   return {
     eventId: ev.id,
     roomEmail,
     title: ev.summary ?? '(sin título)',
-    clientName: priv.clientName || undefined,
-    meetingType: (priv.meetingType as MeetingType) || undefined,
-    attendeeCount: priv.attendeeCount ? Number(priv.attendeeCount) : undefined,
+    clientName: meta.clientName || undefined,
+    meetingType: toMeetingType(meta.meetingType),
+    attendeeCount: meta.attendeeCount ? Number(meta.attendeeCount) : undefined,
+    attendees: attendees.length ? attendees : undefined,
+    roomResponse: room ? toBookingAttendee(room).response : undefined,
     startTime: ev.start?.dateTime ?? ev.start?.date ?? '',
     endTime: ev.end?.dateTime ?? ev.end?.date ?? '',
-    organizerEmail: ev.organizer?.email ?? ev.creator?.email ?? '',
+    organizerEmail,
     htmlLink: ev.htmlLink,
+  }
+}
+
+/** Normaliza la lista de invitados: minúsculas, sin duplicados, sin la sala ni el organizador. */
+function normalizeGuests(
+  attendees: string[] | undefined,
+  organizerEmail: string,
+  roomEmail: string,
+): string[] {
+  const excluded = new Set([organizerEmail.toLowerCase(), roomEmail.toLowerCase()])
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of attendees ?? []) {
+    const email = raw.trim().toLowerCase()
+    if (!email || excluded.has(email) || seen.has(email)) continue
+    seen.add(email)
+    out.push(email)
+  }
+  return out
+}
+
+/** Cuerpo del evento compartido por insert y patch. */
+function eventBody(input: BookingInput) {
+  const shared: Record<string, string> = {}
+  if (input.clientName) shared.clientName = input.clientName
+  if (input.meetingType) shared.meetingType = input.meetingType
+  if (input.attendeeCount != null) shared.attendeeCount = String(input.attendeeCount)
+
+  const guests = normalizeGuests(
+    input.attendees,
+    input.organizerEmail,
+    input.roomEmail,
+  )
+
+  return {
+    summary: input.title,
+    start: { dateTime: input.startTime, timeZone: MX_TZ },
+    end: { dateTime: input.endTime, timeZone: MX_TZ },
+    attendees: [
+      { email: input.roomEmail, resource: true },
+      ...guests.map((email) => ({ email })),
+    ],
+    // Los invitados se ven entre sí. Ojo si algún día se quiere ocultar la lista en juntas
+    // con cliente: la sala es un invitado más, así que con `false` el dashboard tampoco
+    // podría mostrar quién asiste (lee la copia del evento que ve la sala).
+    guestsCanSeeOtherGuests: true,
+    // Solo quien reserva controla la lista, para que la app sea la fuente de verdad.
+    guestsCanInviteOthers: false,
+    extendedProperties: { shared },
   }
 }
 
@@ -87,8 +228,10 @@ export async function freebusyQuery(
       items: roomEmails.map((id) => ({ id })),
     }),
   })
+  // Google puede omitir un calendario de la respuesta (p. ej. si no existe), de ahí el
+  // `| undefined` explícito en el índice.
   const data = (await res.json()) as {
-    calendars: Record<string, { busy?: BusyInterval[] }>
+    calendars: Record<string, { busy?: BusyInterval[] } | undefined>
   }
   return roomEmails.map((roomEmail) => ({
     roomEmail,
@@ -96,44 +239,155 @@ export async function freebusyQuery(
   }))
 }
 
-/** events.insert en el calendario de la sala. Lanza si Calendar detecta conflicto. */
-export async function insertEvent(input: BookingInput): Promise<Booking> {
-  const priv: Record<string, string> = { organizerEmail: input.organizerEmail }
-  if (input.clientName) priv.clientName = input.clientName
-  if (input.meetingType) priv.meetingType = input.meetingType
-  if (input.attendeeCount != null) priv.attendeeCount = String(input.attendeeCount)
+const ROOM_BUSY_ERROR = 'La sala ya está reservada en ese horario.'
 
-  const res = await authedFetch(
-    input.organizerEmail,
-    `/calendars/${encodeURIComponent(input.roomEmail)}/events?sendUpdates=none`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        summary: input.title,
-        start: { dateTime: input.startTime, timeZone: MX_TZ },
-        end: { dateTime: input.endTime, timeZone: MX_TZ },
-        attendees: [
-          { email: input.roomEmail, resource: true },
-          { email: input.organizerEmail, organizer: true },
-        ],
-        extendedProperties: { private: priv },
-      }),
-    },
-  )
-  return eventToBooking(input.roomEmail, (await res.json()) as GCalEvent)
+/**
+ * Rechaza si la sala ya está ocupada.
+ *
+ * NO es autoritativo: freebusy tarda varios segundos en reflejar una reserva recién hecha,
+ * así que dos personas reservando con segundos de diferencia pueden pasar ambas por aquí.
+ * Quien decide de verdad es el recurso — ver `roomResponse` en el Booking.
+ */
+async function assertRoomFree(
+  subject: string,
+  roomEmail: string,
+  startTime: string,
+  endTime: string,
+  /** Hueco que ocupa la propia reserva que se está moviendo, para no chocar consigo misma. */
+  ignore?: { start: string; end: string },
+): Promise<void> {
+  const [availability] = await freebusyQuery(subject, [roomEmail], {
+    timeMin: startTime,
+    timeMax: endTime,
+  })
+  // Comparar por instante, no por texto: el calendario de la sala puede devolver los
+  // horarios con un offset distinto al que usa freebusy (-08:00 vs -06:00) y entonces
+  // dos marcas del mismo momento no coinciden como cadenas.
+  const busy = ignore
+    ? availability.busy.filter(
+        (b) =>
+          !(
+            Date.parse(b.start) >= Date.parse(ignore.start) &&
+            Date.parse(b.end) <= Date.parse(ignore.end)
+          ),
+      )
+    : availability.busy
+  if (busy.length > 0) throw new Error(ROOM_BUSY_ERROR)
 }
 
-/** events.delete en el calendario de la sala. */
+/**
+ * Crea la junta en el calendario del organizador con la sala como recurso.
+ * `sendUpdates=all` es lo que hace que a los invitados les llegue el correo.
+ *
+ * No esperamos a que la sala acepte: medido, tarda 13-15s, y bloquear ahí volvería
+ * inusable el botón de reservar. El dashboard cubre ese hueco leyendo también el
+ * calendario del usuario (ver `getDayBookings`), y una reserva rechazada por choque
+ * desaparece sola porque filtramos las que la sala declinó.
+ */
+export async function insertEvent(input: BookingInput): Promise<Booking> {
+  const subject = input.organizerEmail
+  await assertRoomFree(subject, input.roomEmail, input.startTime, input.endTime)
+
+  const res = await authedFetch(
+    subject,
+    `/calendars/${PRIMARY}/events?sendUpdates=all`,
+    { method: 'POST', body: JSON.stringify(eventBody(input)) },
+  )
+  return eventToBooking((await res.json()) as GCalEvent, input.roomEmail)
+}
+
+/**
+ * Localiza en qué calendario vive el evento y lo devuelve.
+ *
+ * Normalmente en el del organizador. Los eventos creados antes de este cambio tienen a la
+ * sala como organizadora y solo existen en el calendario de la sala, así que caemos a ese.
+ * Devuelve null si no aparece en ninguno.
+ */
+async function resolveEvent(
+  subject: string,
+  roomEmail: string,
+  eventId: string,
+): Promise<{ calendarId: string; event: GCalEvent } | null> {
+  for (const calendarId of [PRIMARY, roomEmail]) {
+    const res = await rawFetch(
+      subject,
+      `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    )
+    if (res.ok) {
+      const event = (await res.json()) as GCalEvent
+      if (event.status !== 'cancelled') return { calendarId, event }
+    }
+  }
+  return null
+}
+
+/** Actualiza la junta conservando el evento (y por tanto las respuestas de los invitados). */
+export async function patchEvent(
+  eventId: string,
+  input: BookingInput,
+): Promise<Booking> {
+  const subject = input.organizerEmail
+  const found = await resolveEvent(subject, input.roomEmail, eventId)
+  if (!found) throw new Error('La reserva ya no existe.')
+  const { calendarId, event: original } = found
+
+  // Si se mueve de horario hay que revalidar la sala; si solo cambia título o invitados,
+  // el recurso ya está aceptado y no vuelve a evaluar.
+  const originalStart = original.start?.dateTime
+  const originalEnd = original.end?.dateTime
+  const timeChanged =
+    Date.parse(originalStart ?? '') !== Date.parse(input.startTime) ||
+    Date.parse(originalEnd ?? '') !== Date.parse(input.endTime)
+  if (timeChanged) {
+    await assertRoomFree(
+      subject,
+      input.roomEmail,
+      input.startTime,
+      input.endTime,
+      originalStart && originalEnd
+        ? { start: originalStart, end: originalEnd }
+        : undefined,
+    )
+  }
+
+  const res = await authedFetch(
+    subject,
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+    { method: 'PATCH', body: JSON.stringify(eventBody(input)) },
+  )
+  return eventToBooking((await res.json()) as GCalEvent, input.roomEmail)
+}
+
+/** Cancela la junta y notifica a los invitados. */
 export async function deleteEvent(
   subject: string,
   roomEmail: string,
   eventId: string,
 ): Promise<void> {
-  await authedFetch(
+  const found = await resolveEvent(subject, roomEmail, eventId)
+  // Ya no existe (o alguien más la canceló): la cancelación es idempotente.
+  if (!found) return
+  const { calendarId } = found
+
+  const res = await rawFetch(
     subject,
-    `/calendars/${encodeURIComponent(roomEmail)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
     { method: 'DELETE' },
   )
+  // 410 = ya estaba cancelado.
+  if (!res.ok && res.status !== 410) {
+    throw new Error(`No se pudo cancelar la reserva (${res.status}): ${await res.text()}`)
+  }
+}
+
+function listParams(range: DateRange): URLSearchParams {
+  return new URLSearchParams({
+    timeMin: range.timeMin,
+    timeMax: range.timeMax,
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '250',
+  })
 }
 
 /** events.list de una sala en un rango, ya mapeado a Booking. */
@@ -142,17 +396,49 @@ export async function listRoomEvents(
   roomEmail: string,
   range: DateRange,
 ): Promise<Booking[]> {
-  const params = new URLSearchParams({
-    timeMin: range.timeMin,
-    timeMax: range.timeMax,
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    maxResults: '250',
-  })
   const res = await authedFetch(
     subject,
-    `/calendars/${encodeURIComponent(roomEmail)}/events?${params}`,
+    `/calendars/${encodeURIComponent(roomEmail)}/events?${listParams(range)}`,
   )
   const data = (await res.json()) as { items?: GCalEvent[] }
-  return (data.items ?? []).map((ev) => eventToBooking(roomEmail, ev))
+  return (data.items ?? []).map((ev) => eventToBooking(ev, roomEmail))
+}
+
+/**
+ * Juntas del usuario en alguna de nuestras salas, leídas de su propio calendario.
+ *
+ * Sirve para dos cosas: la vista "mis reservas" y tapar el hueco de propagación del
+ * dashboard — el calendario de la sala tarda ~15s en reflejar una reserva nueva, pero
+ * el del organizador la tiene al instante.
+ *
+ * Descarta las que la sala rechazó: si dos personas ganaron la carrera por el mismo
+ * horario, la perdedora se queda sin sala y no debe ocupar espacio en el mapa.
+ */
+export async function listMyEvents(
+  subject: string,
+  range: DateRange,
+  roomEmails: string[],
+  /** Si es false, incluye también juntas donde el usuario es invitado y no organizador. */
+  onlyOrganized = true,
+): Promise<Booking[]> {
+  const known = new Set(roomEmails.map((e) => e.toLowerCase()))
+  const res = await authedFetch(
+    subject,
+    `/calendars/${PRIMARY}/events?${listParams(range)}`,
+  )
+  const data = (await res.json()) as { items?: GCalEvent[] }
+
+  return (data.items ?? [])
+    .filter((ev) =>
+      (ev.attendees ?? []).some(
+        (a) => a.email && known.has(a.email.toLowerCase()),
+      ),
+    )
+    .map((ev) => eventToBooking(ev))
+    .filter((b) => b.roomResponse !== 'declined')
+    .filter(
+      (b) =>
+        !onlyOrganized ||
+        b.organizerEmail.toLowerCase() === subject.toLowerCase(),
+    )
 }

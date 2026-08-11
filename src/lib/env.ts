@@ -40,6 +40,17 @@ export function getGoogleServiceAccount(): GoogleServiceAccount {
   }
 }
 
+/**
+ * Correo del usuario a impersonar mientras no exista login OAuth.
+ *
+ * Debe ser un usuario REAL del dominio: es el `subject` de la domain-wide delegation,
+ * así que con credenciales reales toda llamada a Calendar falla si no existe.
+ * Se configura en `.dev.vars` (dev) o `wrangler secret put` (prod).
+ */
+export function getDevUserEmail(): string | undefined {
+  return readEnv('DEV_USER_EMAIL')?.trim() || undefined
+}
+
 /** true si hay credenciales de service account configuradas (activa la integración real). */
 export function hasGoogleCredentials(): boolean {
   return Boolean(
