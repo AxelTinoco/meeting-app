@@ -10,6 +10,7 @@ import {
   requireUser,
 } from '../lib/auth'
 import { mxDayRange } from '../lib/mexico-time'
+import { asRecord } from './input'
 import type { BookingInput, MeetingType } from '../lib/types'
 
 /**
@@ -164,8 +165,8 @@ async function authorizeBooking(
 /** Edita una reserva existente. El organizer se toma de la sesión. */
 export const updateBookingFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => {
-    const d = data as Record<string, unknown>
-    const eventId = String(d?.eventId ?? '').trim()
+    const d = asRecord(data)
+    const eventId = String(d.eventId ?? '').trim()
     if (!eventId) throw new Error('Falta el identificador de la reserva.')
     return { eventId, input: validateBookingInput(data) }
   })
@@ -180,8 +181,11 @@ export const updateBookingFn = createServerFn({ method: 'POST' })
 /** Cancela una reserva. */
 export const cancelBookingFn = createServerFn({ method: 'POST' })
   .validator((data: { eventId: string; roomEmail: string }) => {
-    if (!data?.eventId || !data?.roomEmail) throw new Error('Datos de cancelación incompletos.')
-    return data
+    const d = asRecord(data)
+    const eventId = String(d.eventId ?? '').trim()
+    const roomEmail = String(d.roomEmail ?? '').trim()
+    if (!eventId || !roomEmail) throw new Error('Datos de cancelación incompletos.')
+    return { eventId, roomEmail }
   })
   .handler(async ({ data }) => {
     const { subject } = await authorizeBooking(data.eventId, data.roomEmail)

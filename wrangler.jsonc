@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "meeting-app",
+  // Cuenta de Cloudflare de gerundio.com.mx. Fijarla evita desplegar por error a
+  // otra cuenta si la sesión de wrangler quedó logueada con otro usuario.
+  "account_id": "6df9fffb7a05b322606357579e5d5086",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry"

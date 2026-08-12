@@ -229,7 +229,7 @@ export function RoomDetailModal({
                         </button>
                       </div>
                     )}
-                  </li>
+                  </motion.li>
                 ))}
               </AnimatePresence>
             </motion.ul>

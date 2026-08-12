@@ -7,6 +7,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getCalendarService } from '../lib/calendar-service'
 import { requireAdmin } from '../lib/auth'
+import { asRecord } from './input'
 import type { RoomInput } from '../lib/types'
 
 /** Valida y normaliza el payload de una sala. Lanza en input inválido. */
@@ -42,8 +43,8 @@ export const createRoomFn = createServerFn({ method: 'POST' })
 /** Edita una sala existente. */
 export const updateRoomFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => {
-    const d = data as Record<string, unknown>
-    const resourceEmail = String(d?.resourceEmail ?? '').trim()
+    const d = asRecord(data)
+    const resourceEmail = String(d.resourceEmail ?? '').trim()
     if (!resourceEmail) throw new Error('Falta la sala a editar.')
     return { resourceEmail, patch: validateRoomInput(data) }
   })
@@ -55,7 +56,7 @@ export const updateRoomFn = createServerFn({ method: 'POST' })
 /** Elimina una sala (y en cascada sus reservas). */
 export const deleteRoomFn = createServerFn({ method: 'POST' })
   .validator((data: { resourceEmail: string }) => {
-    const resourceEmail = String(data?.resourceEmail ?? '').trim()
+    const resourceEmail = String(asRecord(data).resourceEmail ?? '').trim()
     if (!resourceEmail) throw new Error('Falta la sala a eliminar.')
     return { resourceEmail }
   })

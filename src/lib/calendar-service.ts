@@ -24,28 +24,28 @@ import {
 } from './google/calendar-api'
 
 export interface CalendarService {
-  listRooms(): Promise<Room[]>
-  getAvailability(
+  listRooms: () => Promise<Room[]>
+  getAvailability: (
     roomEmails: string[],
     range: DateRange,
     subject: string,
-  ): Promise<RoomAvailability[]>
-  createBooking(input: BookingInput): Promise<Booking>
+  ) => Promise<RoomAvailability[]>
+  createBooking: (input: BookingInput) => Promise<Booking>
   /** Una reserva concreta, leída como `subject`. `null` si ya no existe. */
-  getBooking(
+  getBooking: (
     eventId: string,
     roomEmail: string,
     subject: string,
-  ): Promise<Booking | null>
-  updateBooking(eventId: string, input: BookingInput): Promise<Booking>
-  cancelBooking(eventId: string, roomEmail: string, subject: string): Promise<void>
-  getMyBookings(userEmail: string, range: DateRange): Promise<Booking[]>
+  ) => Promise<Booking | null>
+  updateBooking: (eventId: string, input: BookingInput) => Promise<Booking>
+  cancelBooking: (eventId: string, roomEmail: string, subject: string) => Promise<void>
+  getMyBookings: (userEmail: string, range: DateRange) => Promise<Booking[]>
   /** Todas las reservas del rango en todas las salas (para el mapa y "Próximas"). */
-  getDayBookings(range: DateRange, subject: string): Promise<Booking[]>
+  getDayBookings: (range: DateRange, subject: string) => Promise<Booking[]>
   /** Alta/edición/baja de salas. En modo real es roadmap (Directory API). */
-  createRoom(input: RoomInput): Promise<Room>
-  updateRoom(resourceEmail: string, patch: RoomInput): Promise<Room>
-  deleteRoom(resourceEmail: string): Promise<void>
+  createRoom: (input: RoomInput) => Promise<Room>
+  updateRoom: (resourceEmail: string, patch: RoomInput) => Promise<Room>
+  deleteRoom: (resourceEmail: string) => Promise<void>
 }
 
 const ROOMS_NOT_SUPPORTED =

@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
-import { ROOM_STATUS_STYLES, type RoomView } from '../lib/dashboard'
+import { ROOM_STATUS_STYLES } from '../lib/dashboard'
+import type { RoomView } from '../lib/dashboard'
 import { mxTimeLabel } from '../lib/mexico-time'
 import { springSnappy, tileVariants } from '../lib/motion'
 import type { Room } from '../lib/types'
