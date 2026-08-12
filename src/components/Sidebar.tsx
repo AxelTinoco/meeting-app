@@ -1,9 +1,9 @@
-import { ChevronsUpDown } from 'lucide-react'
+import { ChevronsUpDown , LogOut } from 'lucide-react'
 import { motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
-import type { SessionUser } from '../lib/auth'
+import type { SessionUser } from '../lib/types'
 
 interface NavItem {
   icon: GrndIconName
@@ -67,16 +67,35 @@ export function Sidebar({ user }: { user: SessionUser }) {
       </nav>
 
       <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-ink-200/60">
-        <div className="flex size-9 items-center justify-center rounded-full bg-ink-300 text-sm font-semibold text-ink-600">
-          {initials(user.name)}
-        </div>
+        {user.picture ? (
+          <img
+            src={user.picture}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="size-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex size-9 items-center justify-center rounded-full bg-ink-300 text-sm font-semibold text-ink-600">
+            {initials(user.name)}
+          </div>
+        )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-sm font-semibold text-ink-800">
             {user.name}
           </p>
           <p className="truncate text-xs text-ink-400">{user.email}</p>
         </div>
-        <ChevronsUpDown size={16} className="text-ink-400" />
+        {/* Form y no fetch: el logout es POST (un GET lo dispararía cualquier página). */}
+        <form method="post" action="/api/auth/logout">
+          <button
+            type="submit"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+            className="flex size-8 items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-ink-200 hover:text-ink-700"
+          >
+            <LogOut size={16} />
+          </button>
+        </form>
       </div>
     </aside>
   )

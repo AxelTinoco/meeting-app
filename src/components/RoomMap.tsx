@@ -7,26 +7,21 @@ import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
 import { springSnappy, staggerContainer } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
-import type { Booking, Room } from '../lib/types'
+import type { Booking, CurrentUser, Room } from '../lib/types'
 
 interface RoomMapProps {
   rooms: Room[]
   bookings: Booking[]
   now: Date | null
-  usingMock: boolean
+  user: CurrentUser
   onChanged: () => void
 }
 
 /** Lienzo espacial con las salas colocadas según su posición en el mapa. */
-export function RoomMap({
-  rooms,
-  bookings,
-  now,
-  usingMock,
-  onChanged,
-}: RoomMapProps) {
+export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps) {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [creatingRoom, setCreatingRoom] = useState(false)
+  const isAdmin = user.role === 'admin'
 
   // Se re-deriva de `rooms` para reflejar ediciones y cerrarse si la sala se eliminó.
   const selectedRoom =
@@ -44,28 +39,15 @@ export function RoomMap({
         }}
       />
 
-      {usingMock && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut', delay: 0.1 }}
-          className="chip-neon absolute left-6 top-6 z-10 bg-amarillo-200"
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => setCreatingRoom(true)}
+          className="btn-primary absolute right-6 top-6 z-10"
         >
-          <span className="size-1.5 rounded-full bg-black" />
-          Modo demo · datos de prueba
-        </motion.div>
+          <GrndIcon name="sumando" size={16} /> Nueva sala
+        </button>
       )}
-
-      <motion.button
-        type="button"
-        onClick={() => setCreatingRoom(true)}
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.96 }}
-        transition={springSnappy}
-        className="btn-primary absolute right-6 top-6 z-10"
-      >
-        <GrndIcon name="sumando" size={16} /> Nueva sala
-      </motion.button>
 
       <div className="absolute inset-0 p-10">
         {/* El contenedor no anima nada propio: escalona la entrada de las salas
@@ -79,7 +61,7 @@ export function RoomMap({
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="card-empty px-6 py-8">
-                No hay salas. Crea la primera con «Nueva sala».
+                No hay salas configuradas.
               </p>
             </div>
           ) : (
@@ -102,17 +84,15 @@ export function RoomMap({
         <ZoomButton icon="enfocando" label="Centrar" />
       </div>
 
-      <AnimatePresence>
-        {selectedRoom && (
-          <RoomDetailModal
-            key="room-detail"
-            room={selectedRoom}
-            bookings={bookings}
-            onClose={() => setSelectedEmail(null)}
-            onChanged={onChanged}
-          />
-        )}
-      </AnimatePresence>
+      {selectedRoom && (
+        <RoomDetailModal
+          room={selectedRoom}
+          bookings={bookings}
+          user={user}
+          onClose={() => setSelectedEmail(null)}
+          onChanged={onChanged}
+        />
+      )}
 
       <AnimatePresence>
         {creatingRoom && (
