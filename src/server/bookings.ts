@@ -2,15 +2,56 @@
 // Las credenciales nunca se exponen al cliente: todo corre en el servidor.
 
 import { createServerFn } from '@tanstack/react-start'
-import { getCalendarService, isUsingMock } from '../lib/calendar-service'
-import { getCurrentUser, isDomainUser } from '../lib/auth'
+import { getCalendarService } from '../lib/calendar-service'
+import {
+  NotAuthorizedError,
+  canManageBooking,
+  isDomainUser,
+  requireUser,
+} from '../lib/auth'
 import { mxDayRange } from '../lib/mexico-time'
 import type { BookingInput, MeetingType } from '../lib/types'
 
+/**
+ * Reserva tal como la manda el cliente: sin `organizerEmail`.
+ *
+ * Ese campo lo pone el handler a partir de la sesión. Si viniera del payload, cualquiera
+ * podría reservar a nombre de otra persona.
+ */
+type BookingDraft = Omit<BookingInput, 'organizerEmail'>
+
 const MEETING_TYPES: MeetingType[] = ['interno', 'cliente', 'entrevista', 'otro']
 
+/** Tope defensivo: Google acepta cientos, pero una sala de juntas no necesita tantos. */
+const MAX_ATTENDEES = 50
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Valida y normaliza la lista de invitados. Acepta internos y externos por igual. */
+function validateAttendees(value: unknown): string[] | undefined {
+  if (value == null) return undefined
+  if (!Array.isArray(value)) throw new Error('Lista de invitados inválida.')
+
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of value) {
+    const email = String(raw ?? '').trim().toLowerCase()
+    if (!email) continue
+    if (!EMAIL_RE.test(email)) {
+      throw new Error(`"${email}" no es un correo válido.`)
+    }
+    if (seen.has(email)) continue
+    seen.add(email)
+    out.push(email)
+  }
+  if (out.length > MAX_ATTENDEES) {
+    throw new Error(`Máximo ${MAX_ATTENDEES} invitados por reserva.`)
+  }
+  return out.length ? out : undefined
+}
+
 /** Valida y normaliza el payload de creación de reserva. Lanza en input inválido. */
-function validateBookingInput(data: unknown): BookingInput {
+function validateBookingInput(data: unknown): BookingDraft {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Payload de reserva inválido.')
   }
@@ -47,22 +88,22 @@ function validateBookingInput(data: unknown): BookingInput {
     endTime,
     meetingType,
     attendeeCount,
+    attendees: validateAttendees(d.attendees),
     clientName,
-    // El organizer siempre proviene de la sesión del servidor, nunca del cliente.
-    organizerEmail: getCurrentUser().email,
   }
 }
 
 /** Lista las salas configuradas. */
 export const listRoomsFn = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUser()
   return getCalendarService().listRooms()
 })
 
 /** Disponibilidad de todas las salas para hoy (CDMX). */
 export const getTodayAvailabilityFn = createServerFn({ method: 'GET' }).handler(
   async () => {
+    const user = await requireUser()
     const svc = getCalendarService()
-    const user = getCurrentUser()
     const rooms = await svc.listRooms()
     const range = mxDayRange()
     const [availability, bookings] = await Promise.all([
@@ -73,7 +114,7 @@ export const getTodayAvailabilityFn = createServerFn({ method: 'GET' }).handler(
       ),
       svc.getDayBookings(range, user.email),
     ])
-    return { rooms, range, availability, bookings, usingMock: isUsingMock() }
+    return { rooms, range, availability, bookings, user }
   },
 )
 
@@ -81,12 +122,44 @@ export const getTodayAvailabilityFn = createServerFn({ method: 'GET' }).handler(
 export const createBookingFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => validateBookingInput(data))
   .handler(async ({ data }) => {
-    const user = getCurrentUser()
-    if (!isDomainUser(user.email)) {
-      throw new Error('Solo usuarios del dominio de Gerundio pueden reservar.')
-    }
-    return getCalendarService().createBooking(data)
+    const user = await requireUser()
+    return getCalendarService().createBooking({ ...data, organizerEmail: user.email })
   })
+
+/**
+ * Comprueba que el usuario pueda tocar la reserva y devuelve a nombre de quién hay que
+ * hablarle a Google.
+ *
+ * El `subject` es siempre el organizador original, no quien opera: cuando un admin
+ * cancela la junta de alguien más, la acción tiene que salir del calendario del dueño
+ * para que se cancele de verdad y los invitados se enteren. Si el organizador no es del
+ * dominio (reservas viejas, donde la organizadora es la sala) no se puede impersonar, y
+ * se actúa como el propio usuario.
+ */
+async function authorizeBooking(
+  eventId: string,
+  roomEmail: string,
+): Promise<{ subject: string }> {
+  const user = await requireUser()
+  const existing = await getCalendarService().getBooking(
+    eventId,
+    roomEmail,
+    user.email,
+  )
+  if (!existing) throw new Error('La reserva ya no existe.')
+
+  if (!canManageBooking(user, existing.organizerEmail)) {
+    throw new NotAuthorizedError(
+      'Esta reserva es de otra persona. Solo quien la creó (o un administrador) puede modificarla.',
+    )
+  }
+
+  return {
+    subject: isDomainUser(existing.organizerEmail)
+      ? existing.organizerEmail
+      : user.email,
+  }
+}
 
 /** Edita una reserva existente. El organizer se toma de la sesión. */
 export const updateBookingFn = createServerFn({ method: 'POST' })
@@ -97,11 +170,11 @@ export const updateBookingFn = createServerFn({ method: 'POST' })
     return { eventId, input: validateBookingInput(data) }
   })
   .handler(async ({ data }) => {
-    const user = getCurrentUser()
-    if (!isDomainUser(user.email)) {
-      throw new Error('Solo usuarios del dominio de Gerundio pueden editar reservas.')
-    }
-    return getCalendarService().updateBooking(data.eventId, data.input)
+    const { subject } = await authorizeBooking(data.eventId, data.input.roomEmail)
+    return getCalendarService().updateBooking(data.eventId, {
+      ...data.input,
+      organizerEmail: subject,
+    })
   })
 
 /** Cancela una reserva. */
@@ -111,13 +184,13 @@ export const cancelBookingFn = createServerFn({ method: 'POST' })
     return data
   })
   .handler(async ({ data }) => {
-    const user = getCurrentUser()
-    await getCalendarService().cancelBooking(data.eventId, data.roomEmail, user.email)
+    const { subject } = await authorizeBooking(data.eventId, data.roomEmail)
+    await getCalendarService().cancelBooking(data.eventId, data.roomEmail, subject)
     return { ok: true as const }
   })
 
 /** Reservas del usuario logueado (hoy). */
 export const getMyBookingsFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const user = getCurrentUser()
+  const user = await requireUser()
   return getCalendarService().getMyBookings(user.email, mxDayRange())
 })

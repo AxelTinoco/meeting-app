@@ -4,6 +4,15 @@ dist
 dist-ssr
 *.local
 .env
+.dev.vars
+.dev.vars.*
+
+# Credenciales de Google: nunca se commitean.
+# La service account va a .dev.vars (dev) y `wrangler secret put` (prod).
+*.json.key
+client_secret_*.json
+*-*.iam.gserviceaccount.com.json
+sala-juntas-*.json
 .nitro
 .tanstack
 .wrangler

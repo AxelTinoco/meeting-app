@@ -1,10 +1,35 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  redirect,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { getSessionUserFn } from '../server/auth'
 import appCss from '../styles.css?url'
 
+/** Rutas que no exigen sesión (si no, el login sería un ciclo de redirecciones). */
+function isPublicPath(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/api/')
+}
+
 export const Route = createRootRoute({
+  // Puerta única de la app: sin sesión no se llega a ninguna ruta. Las server functions
+  // vuelven a comprobarlo por su cuenta, porque esto solo protege la navegación.
+  beforeLoad: async ({ location }) => {
+    if (isPublicPath(location.pathname)) return { user: null }
+
+    const user = await getSessionUserFn()
+    if (!user) {
+      throw redirect({
+        to: '/login',
+        search: { redirect: location.href },
+      })
+    }
+    return { user }
+  },
   head: () => ({
     meta: [
       {

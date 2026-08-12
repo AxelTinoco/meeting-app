@@ -1,6 +1,6 @@
 // Constantes de dominio compartidas cliente/servidor (sin secretos).
 
-export const GOOGLE_WORKSPACE_DOMAIN = 'gerundio.mx'
+export const GOOGLE_WORKSPACE_DOMAIN = 'gerundio.com.mx'
 
 export const APP_NAME = 'Gerundio · Salas'
 

@@ -104,7 +104,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
               <input
                 value={building}
                 onChange={(e) => setBuilding(e.target.value)}
-                placeholder="Ej. Oficina CDMX"
+                placeholder="Ej. Gerundio-HQ"
                 className="input"
               />
             </Field>
@@ -112,7 +112,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
               <input
                 value={floor}
                 onChange={(e) => setFloor(e.target.value)}
-                placeholder="Ej. Piso 3"
+                placeholder="Ej. Piso 4"
                 className="input"
               />
             </Field>
