@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { Trash2, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
+import { ModalShell } from './ModalShell'
 import { BookingModal } from './BookingModal'
 import { RoomFormModal } from './RoomFormModal'
 import { ConfirmDialog } from './ConfirmDialog'
 import { cancelBookingFn } from '../server/bookings'
 import { deleteRoomFn } from '../server/rooms'
 import { mxTimeLabel } from '../lib/mexico-time'
+import { railItemVariants, staggerContainer } from '../lib/motion'
 import type { Booking, MeetingType, Room } from '../lib/types'
 
 interface RoomDetailModalProps {
@@ -50,73 +53,83 @@ export function RoomDetailModal({
 
   return (
     <>
-      <div className="modal-overlay z-50" onClick={onClose}>
-        <div
-          className="modal-panel flex max-h-[85vh] max-w-lg flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between border-b border-ink-100 p-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink-900">{room.name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
-                {room.capacity != null && (
-                  <span className="inline-flex items-center gap-1">
-                    <GrndIcon name="conexion" size={14} /> {room.capacity} personas
-                  </span>
-                )}
-                {room.building && <span>{room.building}</span>}
-                {room.floor && <span>{room.floor}</span>}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-icon"
-              aria-label="Cerrar"
-            >
-              <X size={18} />
-            </button>
+      <ModalShell
+        onClose={onClose}
+        overlayClassName="z-50"
+        panelClassName="flex max-h-[85vh] max-w-lg flex-col"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-ink-100 p-6">
+          <div>
+            <h2 className="text-xl font-bold text-ink-900">{room.name}</h2>
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
+              {room.capacity != null && (
+                <span className="inline-flex items-center gap-1">
+                  <GrndIcon name="conexion" size={14} /> {room.capacity}{' '}
+                  personas
+                </span>
+              )}
+              {room.building && <span>{room.building}</span>}
+              {room.floor && <span>{room.floor}</span>}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-icon"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Acciones de la sala */}
+        <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
+          <button
+            type="button"
+            onClick={() => setEditingRoom(true)}
+            className="btn-secondary px-3 py-1.5"
+          >
+            <GrndIcon name="transformando" size={14} /> Editar sala
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeletingRoom(true)}
+            className="btn-danger-outline px-3 py-1.5"
+          >
+            <Trash2 size={14} /> Eliminar sala
+          </button>
+        </div>
+
+        {/* Lista de reservas de hoy */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-ink-700">
+              Reservas de hoy
+            </h3>
+            <span className="text-xs text-ink-400">{roomBookings.length}</span>
           </div>
 
-          {/* Acciones de la sala */}
-          <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
-            <button
-              type="button"
-              onClick={() => setEditingRoom(true)}
-              className="btn-secondary px-3 py-1.5"
+          {roomBookings.length === 0 ? (
+            <p className="card-empty px-4 py-8">
+              Sin reservas hoy. Esta sala está libre todo el día.
+            </p>
+          ) : (
+            <motion.ul
+              className="flex flex-col gap-2"
+              variants={staggerContainer(0.04)}
+              initial="hidden"
+              animate="visible"
             >
-              <GrndIcon name="transformando" size={14} /> Editar sala
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeletingRoom(true)}
-              className="btn-danger-outline px-3 py-1.5"
-            >
-              <Trash2 size={14} /> Eliminar sala
-            </button>
-          </div>
-
-          {/* Lista de reservas de hoy */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-ink-700">
-                Reservas de hoy
-              </h3>
-              <span className="text-xs text-ink-400">
-                {roomBookings.length}
-              </span>
-            </div>
-
-            {roomBookings.length === 0 ? (
-              <p className="card-empty px-4 py-8">
-                Sin reservas hoy. Esta sala está libre todo el día.
-              </p>
-            ) : (
-              <ul className="space-y-2">
+              {/* `popLayout`: al cancelar una reserva, las de abajo suben en
+                    lugar de dar un salto cuando termina el fundido. */}
+              <AnimatePresence mode="popLayout">
                 {roomBookings.map((b) => (
-                  <li
+                  <motion.li
                     key={b.eventId}
+                    layout
+                    variants={railItemVariants}
+                    exit="exit"
                     className="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3"
                   >
                     <div className="min-w-0">
@@ -155,82 +168,101 @@ export function RoomDetailModal({
                         <Trash2 size={15} />
                       </button>
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Footer: nueva reserva */}
-          <div className="border-t border-ink-100 p-4">
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className="btn-primary w-full"
-            >
-              <GrndIcon name="sumando" size={16} /> Nueva reserva
-            </button>
-          </div>
+              </AnimatePresence>
+            </motion.ul>
+          )}
         </div>
-      </div>
 
-      {/* Sub-modales */}
-      {creating && (
-        <BookingModal
-          room={room}
-          onClose={() => setCreating(false)}
-          onSaved={onChanged}
-        />
-      )}
+        {/* Footer: nueva reserva */}
+        <div className="border-t border-ink-100 p-4">
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="btn-primary w-full"
+          >
+            <GrndIcon name="sumando" size={16} /> Nueva reserva
+          </button>
+        </div>
+      </ModalShell>
 
-      {editingBooking && (
-        <BookingModal
-          room={room}
-          booking={editingBooking}
-          onClose={() => setEditingBooking(null)}
-          onSaved={onChanged}
-        />
-      )}
+      {/* Sub-modales. Cada uno con su propio AnimatePresence: mientras se
+          desmonta, React sigue renderizando el elemento anterior con las props
+          que tenía (por eso `cancelTarget` puede ser null sin romper la salida). */}
+      <AnimatePresence>
+        {creating && (
+          <BookingModal
+            key="booking-create"
+            room={room}
+            onClose={() => setCreating(false)}
+            onSaved={onChanged}
+          />
+        )}
+      </AnimatePresence>
 
-      {editingRoom && (
-        <RoomFormModal
-          room={room}
-          onClose={() => setEditingRoom(false)}
-          onSaved={onChanged}
-        />
-      )}
+      <AnimatePresence>
+        {editingBooking && (
+          <BookingModal
+            key="booking-edit"
+            room={room}
+            booking={editingBooking}
+            onClose={() => setEditingBooking(null)}
+            onSaved={onChanged}
+          />
+        )}
+      </AnimatePresence>
 
-      {cancelTarget && (
-        <ConfirmDialog
-          title="Cancelar reserva"
-          message={`Se cancelará "${cancelTarget.title}". Esta acción no se puede deshacer.`}
-          confirmLabel="Cancelar reserva"
-          onConfirm={async () => {
-            await cancelBookingFn({
-              data: {
-                eventId: cancelTarget.eventId,
-                roomEmail: cancelTarget.roomEmail,
-              },
-            })
-            onChanged()
-          }}
-          onClose={() => setCancelTarget(null)}
-        />
-      )}
+      <AnimatePresence>
+        {editingRoom && (
+          <RoomFormModal
+            key="room-edit"
+            room={room}
+            onClose={() => setEditingRoom(false)}
+            onSaved={onChanged}
+          />
+        )}
+      </AnimatePresence>
 
-      {deletingRoom && (
-        <ConfirmDialog
-          title="Eliminar sala"
-          message={`Se eliminará "${room.name}" y todas sus reservas. Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar sala"
-          onConfirm={async () => {
-            await deleteRoomFn({ data: { resourceEmail: room.resourceEmail } })
-            onChanged()
-            onClose()
-          }}
-          onClose={() => setDeletingRoom(false)}
-        />
-      )}
+      <AnimatePresence>
+        {cancelTarget && (
+          <ConfirmDialog
+            key="cancel-booking"
+            title="Cancelar reserva"
+            message={`Se cancelará "${cancelTarget.title}". Esta acción no se puede deshacer.`}
+            confirmLabel="Cancelar reserva"
+            onConfirm={async () => {
+              await cancelBookingFn({
+                data: {
+                  eventId: cancelTarget.eventId,
+                  roomEmail: cancelTarget.roomEmail,
+                },
+              })
+              onChanged()
+            }}
+            onClose={() => setCancelTarget(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deletingRoom && (
+          <ConfirmDialog
+            key="delete-room"
+            title="Eliminar sala"
+            message={`Se eliminará "${room.name}" y todas sus reservas. Esta acción no se puede deshacer.`}
+            confirmLabel="Eliminar sala"
+            onConfirm={async () => {
+              await deleteRoomFn({
+                data: { resourceEmail: room.resourceEmail },
+              })
+              onChanged()
+              onClose()
+            }}
+            onClose={() => setDeletingRoom(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

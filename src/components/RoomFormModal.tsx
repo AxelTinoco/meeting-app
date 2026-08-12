@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { ModalShell } from './ModalShell'
 import { createRoomFn, updateRoomFn } from '../server/rooms'
 import type { Room } from '../lib/types'
 
@@ -53,88 +54,87 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
   }
 
   return (
-    <div className="modal-overlay z-50" onClick={onClose}>
-      <div
-        className="modal-panel max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-900">
-              {isEdit ? 'Editar sala' : 'Nueva sala'}
-            </h2>
-            <p className="text-sm text-ink-500">
-              {isEdit ? room!.resourceEmail : 'Se agregará al mapa de salas'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-icon"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
+    <ModalShell
+      onClose={onClose}
+      overlayClassName="z-50"
+      panelClassName="max-w-md p-6"
+    >
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-ink-900">
+            {isEdit ? 'Editar sala' : 'Nueva sala'}
+          </h2>
+          <p className="text-sm text-ink-500">
+            {isEdit ? room!.resourceEmail : 'Se agregará al mapa de salas'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-icon"
+          aria-label="Cerrar"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Nombre">
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Sala Bosque"
+            className="input"
+          />
+        </Field>
+
+        <Field label="Capacidad">
+          <input
+            type="number"
+            min={1}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            placeholder="Ej. 8"
+            className="input"
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Edificio">
+            <input
+              value={building}
+              onChange={(e) => setBuilding(e.target.value)}
+              placeholder="Ej. Oficina CDMX"
+              className="input"
+            />
+          </Field>
+          <Field label="Piso">
+            <input
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+              placeholder="Ej. Piso 3"
+              className="input"
+            />
+          </Field>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Nombre">
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Sala Bosque"
-              className="input"
-            />
-          </Field>
+        {error && <p className="alert-error">{error}</p>}
 
-          <Field label="Capacidad">
-            <input
-              type="number"
-              min={1}
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              placeholder="Ej. 8"
-              className="input"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Edificio">
-              <input
-                value={building}
-                onChange={(e) => setBuilding(e.target.value)}
-                placeholder="Ej. Oficina CDMX"
-                className="input"
-              />
-            </Field>
-            <Field label="Piso">
-              <input
-                value={floor}
-                onChange={(e) => setFloor(e.target.value)}
-                placeholder="Ej. Piso 3"
-                className="input"
-              />
-            </Field>
-          </div>
-
-          {error && <p className="alert-error">{error}</p>}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="btn-primary">
-              {submitting
-                ? 'Guardando…'
-                : isEdit
-                  ? 'Guardar cambios'
-                  : 'Crear sala'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-ghost">
+            Cancelar
+          </button>
+          <button type="submit" disabled={submitting} className="btn-primary">
+            {submitting
+              ? 'Guardando…'
+              : isEdit
+                ? 'Guardar cambios'
+                : 'Crear sala'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   )
 }
 

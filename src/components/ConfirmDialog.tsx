@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { ModalShell } from './ModalShell'
 
 interface ConfirmDialogProps {
   title: string
@@ -37,35 +38,34 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="modal-overlay z-[60]" onClick={onClose}>
-      <div
-        className="modal-panel max-w-sm p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-rosa-600">
-            <AlertTriangle size={20} />
-          </span>
-          <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
-        </div>
-        <p className="text-sm text-ink-600">{message}</p>
-
-        {error && <p className="alert-error mt-3">{error}</p>}
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-ghost">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={busy}
-            className="btn-danger"
-          >
-            {busy ? 'Eliminando…' : confirmLabel}
-          </button>
-        </div>
+    <ModalShell
+      onClose={onClose}
+      overlayClassName="z-[60]"
+      panelClassName="max-w-sm p-6"
+    >
+      <div className="mb-3 flex items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-rosa-600">
+          <AlertTriangle size={20} />
+        </span>
+        <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
       </div>
-    </div>
+      <p className="text-sm text-ink-600">{message}</p>
+
+      {error && <p className="alert-error mt-3">{error}</p>}
+
+      <div className="mt-6 flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="btn-ghost">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={busy}
+          className="btn-danger"
+        >
+          {busy ? 'Eliminando…' : confirmLabel}
+        </button>
+      </div>
+    </ModalShell>
   )
 }

@@ -1,6 +1,8 @@
 import { MoreHorizontal } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { MX_TZ, mxTimeLabel } from '../lib/mexico-time'
+import { railItemVariants, staggerContainer } from '../lib/motion'
 import type { UpcomingItem, UpcomingStatus } from '../lib/dashboard'
 
 interface UpcomingRailProps {
@@ -18,13 +20,25 @@ export function UpcomingRail({ items, now }: UpcomingRailProps) {
         <MoreHorizontal size={18} className="text-ink-400" />
       </div>
 
-      <div className="flex flex-col gap-3 overflow-y-auto">
+      {/* La agenda se recalcula cada minuto (useNow): las tarjetas cambian de
+          estado y entran/salen solas, así que la lista anima presencia y no
+          solo la carga inicial. */}
+      <motion.div
+        className="flex flex-col gap-3 overflow-y-auto"
+        variants={staggerContainer(0.06, 0.1)}
+        initial="hidden"
+        animate="visible"
+      >
         {items.length === 0 ? (
           <p className="card-empty px-4 py-6">No hay reuniones hoy.</p>
         ) : (
-          items.map((item) => <UpcomingCard key={item.id} item={item} />)
+          <AnimatePresence>
+            {items.map((item) => (
+              <UpcomingCard key={item.id} item={item} />
+            ))}
+          </AnimatePresence>
         )}
-      </div>
+      </motion.div>
     </aside>
   )
 }
@@ -53,7 +67,17 @@ function Clock({ now }: { now: Date | null }) {
   return (
     <div suppressHydrationWarning>
       <p className="text-5xl font-extrabold tracking-tight text-ink-900 tabular-nums">
-        {time}
+        {/* La `key` es la hora: al cambiar el minuto el span se remonta y vuelve
+            a correr su `initial`, así el reloj «cae» en vez de saltar. */}
+        <motion.span
+          key={time}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="inline-block"
+        >
+          {time}
+        </motion.span>
       </p>
       <p className="mt-1 text-xs font-semibold tracking-widest text-ink-400">
         {date || ' '}
@@ -96,21 +120,32 @@ function UpcomingCard({ item }: { item: UpcomingItem }) {
 
   if (item.status === 'free') {
     return (
-      <div className="card-empty px-4 py-3 text-left">
+      <motion.div
+        layout
+        variants={railItemVariants}
+        initial="hidden"
+        exit="exit"
+        className="card-empty px-4 py-3 text-left"
+      >
         <div className="mb-1.5 flex items-center justify-between">
           <span className={b.badge}>{b.label}</span>
           <span className="text-xs font-medium text-ink-500">{range}</span>
         </div>
         <p className="text-sm italic text-ink-500">{item.title}</p>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div
-      className={`rounded-xl border border-ink-200 border-l-4 ${b.accent} bg-white px-4 py-3 shadow-sm ${
-        item.status === 'ended' ? 'opacity-60' : ''
-      }`}
+    <motion.div
+      layout
+      variants={railItemVariants}
+      custom={item.status === 'ended'}
+      // `initial` explícito aunque el riel ya orqueste: sin él el SSR no emite
+      // el estado inicial y la hidratación produce un parpadeo (ver RoomTile).
+      initial="hidden"
+      exit="exit"
+      className={`rounded-xl border border-ink-200 border-l-4 ${b.accent} bg-white px-4 py-3 shadow-sm`}
     >
       <div className="mb-1.5 flex items-center justify-between">
         <span className={b.badge}>{b.label}</span>
@@ -122,6 +157,6 @@ function UpcomingCard({ item }: { item: UpcomingItem }) {
           <GrndIcon name="target" size={12} /> {item.roomName}
         </p>
       )}
-    </div>
+    </motion.div>
   )
 }

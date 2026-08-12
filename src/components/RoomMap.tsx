@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { RoomTile } from './RoomTile'
 import { RoomDetailModal } from './RoomDetailModal'
 import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
+import { springSnappy, staggerContainer } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
 import type { Booking, Room } from '../lib/types'
 
@@ -43,22 +45,37 @@ export function RoomMap({
       />
 
       {usingMock && (
-        <div className="chip-neon absolute left-6 top-6 z-10 bg-amarillo-200">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut', delay: 0.1 }}
+          className="chip-neon absolute left-6 top-6 z-10 bg-amarillo-200"
+        >
           <span className="size-1.5 rounded-full bg-black" />
           Modo demo · datos de prueba
-        </div>
+        </motion.div>
       )}
 
-      <button
+      <motion.button
         type="button"
         onClick={() => setCreatingRoom(true)}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.96 }}
+        transition={springSnappy}
         className="btn-primary absolute right-6 top-6 z-10"
       >
         <GrndIcon name="sumando" size={16} /> Nueva sala
-      </button>
+      </motion.button>
 
       <div className="absolute inset-0 p-10">
-        <div className="relative h-full w-full">
+        {/* El contenedor no anima nada propio: escalona la entrada de las salas
+            para que el plano se dibuje, en vez de aparecer de golpe. */}
+        <motion.div
+          className="relative h-full w-full"
+          variants={staggerContainer(0.05)}
+          initial="hidden"
+          animate="visible"
+        >
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="card-empty px-6 py-8">
@@ -66,15 +83,17 @@ export function RoomMap({
               </p>
             </div>
           ) : (
-            rooms.map((room) => (
-              <RoomTile
-                key={room.resourceEmail}
-                view={deriveRoomView(room, bookings, now)}
-                onSelect={(r) => setSelectedEmail(r.resourceEmail)}
-              />
-            ))
+            <AnimatePresence>
+              {rooms.map((room) => (
+                <RoomTile
+                  key={room.resourceEmail}
+                  view={deriveRoomView(room, bookings, now)}
+                  onSelect={(r) => setSelectedEmail(r.resourceEmail)}
+                />
+              ))}
+            </AnimatePresence>
           )}
-        </div>
+        </motion.div>
       </div>
 
       <div className="card absolute bottom-6 right-6 flex flex-col overflow-hidden">
@@ -83,39 +102,41 @@ export function RoomMap({
         <ZoomButton icon="enfocando" label="Centrar" />
       </div>
 
-      {selectedRoom && (
-        <RoomDetailModal
-          room={selectedRoom}
-          bookings={bookings}
-          onClose={() => setSelectedEmail(null)}
-          onChanged={onChanged}
-        />
-      )}
+      <AnimatePresence>
+        {selectedRoom && (
+          <RoomDetailModal
+            key="room-detail"
+            room={selectedRoom}
+            bookings={bookings}
+            onClose={() => setSelectedEmail(null)}
+            onChanged={onChanged}
+          />
+        )}
+      </AnimatePresence>
 
-      {creatingRoom && (
-        <RoomFormModal
-          onClose={() => setCreatingRoom(false)}
-          onSaved={onChanged}
-        />
-      )}
+      <AnimatePresence>
+        {creatingRoom && (
+          <RoomFormModal
+            key="room-create"
+            onClose={() => setCreatingRoom(false)}
+            onSaved={onChanged}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-function ZoomButton({
-  icon,
-  label,
-}: {
-  icon: GrndIconName
-  label: string
-}) {
+function ZoomButton({ icon, label }: { icon: GrndIconName; label: string }) {
   return (
-    <button
+    <motion.button
       type="button"
       aria-label={label}
+      whileTap={{ scale: 0.88 }}
+      transition={springSnappy}
       className="flex size-11 items-center justify-center text-ink-500 transition-colors hover:bg-ink-50 hover:text-brand-600"
     >
       <GrndIcon name={icon} size={18} />
-    </button>
+    </motion.button>
   )
 }

@@ -1,6 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { MotionConfig } from 'motion/react'
 
 import appCss from '../styles.css?url'
 
@@ -35,7 +36,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        {/* `reducedMotion="user"`: con "Reducir movimiento" activado en el
+            sistema, motion desactiva transform y layout en toda la app y deja
+            solo los fundidos de opacidad. Se resuelve una vez aquí para que
+            ningún componente tenga que acordarse de comprobarlo. */}
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

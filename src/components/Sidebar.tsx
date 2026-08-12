@@ -1,5 +1,7 @@
 import { ChevronsUpDown } from 'lucide-react'
+import { motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
+import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
 import type { SessionUser } from '../lib/auth'
 
@@ -30,21 +32,37 @@ export function Sidebar({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="relative flex flex-col gap-1">
         {NAV.map((item) => (
-          <button
+          <motion.button
             key={item.label}
             type="button"
             aria-current={item.active ? 'page' : undefined}
+            whileHover={{ x: 3 }}
+            whileTap={{ scale: 0.97 }}
+            transition={springSnappy}
             className={
               item.active
-                ? 'flex items-center gap-3 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm'
-                : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-200/60'
+                ? 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white'
+                : 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-200/60'
             }
           >
-            <GrndIcon name={item.icon} size={18} />
-            {item.label}
-          </button>
+            {/* La píldora activa es un elemento compartido: cuando estas
+                secciones se conecten al router, `layoutId` la hará deslizarse
+                de una entrada a otra en vez de reaparecer. Va antes que el
+                contenido y este lleva `relative`: así el orden de pintado la
+                deja detrás sin recurrir a un z-index negativo, que se colaría
+                bajo el fondo del sidebar. */}
+            {item.active && (
+              <motion.span
+                layoutId="nav-active"
+                transition={springSnappy}
+                className="absolute inset-0 rounded-xl bg-brand-500 shadow-sm"
+              />
+            )}
+            <GrndIcon name={item.icon} size={18} className="relative" />
+            <span className="relative">{item.label}</span>
+          </motion.button>
         ))}
       </nav>
 
