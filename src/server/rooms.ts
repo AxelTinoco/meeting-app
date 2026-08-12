@@ -1,11 +1,12 @@
 // Server functions para el CRUD de salas.
 //
-// En modo demo (mock) las salas viven en memoria y se pueden crear/editar/eliminar.
-// Con credenciales reales de Google esto lanza (roadmap: Admin Directory API).
+// Hoy el servicio de Calendar lanza en las tres: dar de alta un recurso es Admin
+// Directory API y sigue siendo roadmap. Se conservan para que la ruta exista cuando se
+// implemente; mientras tanto las salas se administran desde la Admin Console.
 
 import { createServerFn } from '@tanstack/react-start'
 import { getCalendarService } from '../lib/calendar-service'
-import { getCurrentUser, isDomainUser } from '../lib/auth'
+import { requireAdmin } from '../lib/auth'
 import type { RoomInput } from '../lib/types'
 
 /** Valida y normaliza el payload de una sala. Lanza en input inválido. */
@@ -30,19 +31,11 @@ function validateRoomInput(data: unknown): RoomInput {
   return { name, capacity, building, floor }
 }
 
-/** Verifica que quien opera pertenezca al dominio (misma regla que las reservas). */
-function assertDomainUser(): void {
-  const user = getCurrentUser()
-  if (!isDomainUser(user.email)) {
-    throw new Error('Solo usuarios del dominio de Gerundio pueden gestionar salas.')
-  }
-}
-
 /** Crea una sala. */
 export const createRoomFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => validateRoomInput(data))
   .handler(async ({ data }) => {
-    assertDomainUser()
+    await requireAdmin()
     return getCalendarService().createRoom(data)
   })
 
@@ -55,7 +48,7 @@ export const updateRoomFn = createServerFn({ method: 'POST' })
     return { resourceEmail, patch: validateRoomInput(data) }
   })
   .handler(async ({ data }) => {
-    assertDomainUser()
+    await requireAdmin()
     return getCalendarService().updateRoom(data.resourceEmail, data.patch)
   })
 
@@ -67,7 +60,7 @@ export const deleteRoomFn = createServerFn({ method: 'POST' })
     return { resourceEmail }
   })
   .handler(async ({ data }) => {
-    assertDomainUser()
+    await requireAdmin()
     await getCalendarService().deleteRoom(data.resourceEmail)
     return { ok: true as const }
   })

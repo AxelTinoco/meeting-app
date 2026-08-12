@@ -1,8 +1,7 @@
-// Interfaz única que consumen las server functions, con dos implementaciones:
-//   - real:  Google Calendar (cuando hay credenciales de service account)
-//   - mock:  datos en memoria (default para desarrollo sin credenciales)
+// Interfaz única que consumen las server functions, implementada contra Google Calendar.
 //
-// Cambiar entre ambas es transparente: `getCalendarService()` elige según el entorno.
+// Hubo un modo demo con datos en memoria; se quitó al entrar el login real, porque
+// mantenía un camino en el que la app funcionaba sin credenciales ni sesión.
 
 import { hasGoogleCredentials } from './env'
 import { listRoomsConfig } from './rooms.config'
@@ -19,10 +18,10 @@ import {
   insertEvent,
   patchEvent,
   deleteEvent,
+  getEvent,
   listRoomEvents,
   listMyEvents,
 } from './google/calendar-api'
-import { mockService } from './mock/mock-service'
 
 export interface CalendarService {
   listRooms(): Promise<Room[]>
@@ -32,6 +31,12 @@ export interface CalendarService {
     subject: string,
   ): Promise<RoomAvailability[]>
   createBooking(input: BookingInput): Promise<Booking>
+  /** Una reserva concreta, leída como `subject`. `null` si ya no existe. */
+  getBooking(
+    eventId: string,
+    roomEmail: string,
+    subject: string,
+  ): Promise<Booking | null>
   updateBooking(eventId: string, input: BookingInput): Promise<Booking>
   cancelBooking(eventId: string, roomEmail: string, subject: string): Promise<void>
   getMyBookings(userEmail: string, range: DateRange): Promise<Booking[]>
@@ -44,7 +49,7 @@ export interface CalendarService {
 }
 
 const ROOMS_NOT_SUPPORTED =
-  'La gestión de salas todavía no está disponible con Google (roadmap: Admin Directory API). Disponible en modo demo.'
+  'La gestión de salas se hace desde la Admin Console de Google (roadmap: Admin Directory API).'
 
 const realService: CalendarService = {
   async listRooms() {
@@ -56,6 +61,9 @@ const realService: CalendarService = {
   },
   createBooking(input) {
     return insertEvent(input)
+  },
+  getBooking(eventId, roomEmail, subject) {
+    return getEvent(subject, roomEmail, eventId)
   },
   updateBooking(eventId, input) {
     // PATCH en vez de borrar+crear: conserva el id del evento y las respuestas que los
@@ -105,12 +113,12 @@ const realService: CalendarService = {
   },
 }
 
-/** Devuelve la implementación real si hay credenciales, o el mock en caso contrario. */
+/** Cliente de Calendar. Lanza si el entorno no tiene credenciales de service account. */
 export function getCalendarService(): CalendarService {
-  return hasGoogleCredentials() ? realService : mockService
-}
-
-/** true si estamos operando con datos mock (útil para mostrar un banner en la UI). */
-export function isUsingMock(): boolean {
-  return !hasGoogleCredentials()
+  if (!hasGoogleCredentials()) {
+    throw new Error(
+      'Faltan credenciales de Google (GOOGLE_SERVICE_ACCOUNT_EMAIL y GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY).',
+    )
+  }
+  return realService
 }

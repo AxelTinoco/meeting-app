@@ -5,26 +5,21 @@ import { RoomDetailModal } from './RoomDetailModal'
 import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
 import type { GrndIconName } from './GrndIcon'
-import type { Booking, Room } from '../lib/types'
+import type { Booking, CurrentUser, Room } from '../lib/types'
 
 interface RoomMapProps {
   rooms: Room[]
   bookings: Booking[]
   now: Date | null
-  usingMock: boolean
+  user: CurrentUser
   onChanged: () => void
 }
 
 /** Lienzo espacial con las salas colocadas según su posición en el mapa. */
-export function RoomMap({
-  rooms,
-  bookings,
-  now,
-  usingMock,
-  onChanged,
-}: RoomMapProps) {
+export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps) {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [creatingRoom, setCreatingRoom] = useState(false)
+  const isAdmin = user.role === 'admin'
 
   // Se re-deriva de `rooms` para reflejar ediciones y cerrarse si la sala se eliminó.
   const selectedRoom =
@@ -42,27 +37,22 @@ export function RoomMap({
         }}
       />
 
-      {usingMock && (
-        <div className="chip-neon absolute left-6 top-6 z-10 bg-amarillo-200">
-          <span className="size-1.5 rounded-full bg-black" />
-          Modo demo · datos de prueba
-        </div>
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => setCreatingRoom(true)}
+          className="btn-primary absolute right-6 top-6 z-10"
+        >
+          <GrndIcon name="sumando" size={16} /> Nueva sala
+        </button>
       )}
-
-      <button
-        type="button"
-        onClick={() => setCreatingRoom(true)}
-        className="btn-primary absolute right-6 top-6 z-10"
-      >
-        <GrndIcon name="sumando" size={16} /> Nueva sala
-      </button>
 
       <div className="absolute inset-0 p-10">
         <div className="relative h-full w-full">
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="card-empty px-6 py-8">
-                No hay salas. Crea la primera con «Nueva sala».
+                No hay salas configuradas.
               </p>
             </div>
           ) : (
@@ -87,6 +77,7 @@ export function RoomMap({
         <RoomDetailModal
           room={selectedRoom}
           bookings={bookings}
+          user={user}
           onClose={() => setSelectedEmail(null)}
           onChanged={onChanged}
         />

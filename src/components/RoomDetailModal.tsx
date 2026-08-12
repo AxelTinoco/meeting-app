@@ -7,10 +7,12 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { cancelBookingFn } from '../server/bookings'
 import { deleteRoomFn } from '../server/rooms'
 import { mxTimeLabel } from '../lib/mexico-time'
+import { canManageBooking } from '../lib/permissions'
 import type {
   AttendeeResponse,
   Booking,
   BookingAttendee,
+  CurrentUser,
   MeetingType,
   Room,
 } from '../lib/types'
@@ -19,6 +21,7 @@ interface RoomDetailModalProps {
   room: Room
   /** Todas las reservas del día (se filtran a esta sala). */
   bookings: Booking[]
+  user: CurrentUser
   onClose: () => void
   onChanged: () => void
 }
@@ -60,6 +63,7 @@ function attendeeLabel(a: BookingAttendee): string {
 export function RoomDetailModal({
   room,
   bookings,
+  user,
   onClose,
   onChanged,
 }: RoomDetailModalProps) {
@@ -69,9 +73,13 @@ export function RoomDetailModal({
   const [editingRoom, setEditingRoom] = useState(false)
   const [deletingRoom, setDeletingRoom] = useState(false)
 
+  const isAdmin = user.role === 'admin'
+
+  // Por hora real y no por string: los calendarios de las salas devuelven cada uno su
+  // propio offset, así que comparar el ISO como texto desordena la lista.
   const roomBookings = bookings
     .filter((b) => b.roomEmail === room.resourceEmail)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime))
 
   return (
     <>
@@ -104,23 +112,25 @@ export function RoomDetailModal({
             </button>
           </div>
 
-          {/* Acciones de la sala */}
-          <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
-            <button
-              type="button"
-              onClick={() => setEditingRoom(true)}
-              className="btn-secondary px-3 py-1.5"
-            >
-              <GrndIcon name="transformando" size={14} /> Editar sala
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeletingRoom(true)}
-              className="btn-danger-outline px-3 py-1.5"
-            >
-              <Trash2 size={14} /> Eliminar sala
-            </button>
-          </div>
+          {/* Acciones de la sala: solo admins */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
+              <button
+                type="button"
+                onClick={() => setEditingRoom(true)}
+                className="btn-secondary px-3 py-1.5"
+              >
+                <GrndIcon name="transformando" size={14} /> Editar sala
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingRoom(true)}
+                className="btn-danger-outline px-3 py-1.5"
+              >
+                <Trash2 size={14} /> Eliminar sala
+              </button>
+            </div>
+          )}
 
           {/* Lista de reservas de hoy */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -184,24 +194,28 @@ export function RoomDetailModal({
                         </div>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingBooking(b)}
-                        className="btn-icon"
-                        aria-label="Editar reserva"
-                      >
-                        <GrndIcon name="transformando" size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCancelTarget(b)}
-                        className="btn-icon-danger"
-                        aria-label="Cancelar reserva"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                    {/* Editar/cancelar solo lo propio (o cualquier cosa si eres admin).
+                        El servidor vuelve a comprobarlo: esto es solo la UI. */}
+                    {canManageBooking(user, b.organizerEmail) && (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditingBooking(b)}
+                          className="btn-icon"
+                          aria-label="Editar reserva"
+                        >
+                          <GrndIcon name="transformando" size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCancelTarget(b)}
+                          className="btn-icon-danger"
+                          aria-label="Cancelar reserva"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

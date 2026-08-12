@@ -1,6 +1,26 @@
 // Tipos de dominio compartidos entre servidor y cliente.
 // Las salas viven en Google (Calendar Resources) y las reservas son eventos de Calendar.
 
+import type { Role } from './roles.config'
+
+/**
+ * Usuario logueado. Vive aquí (y no en `session.ts`) para que el cliente pueda
+ * importarlo sin arrastrar los módulos de servidor.
+ */
+export interface SessionUser {
+  email: string
+  name: string
+  picture?: string
+}
+
+/**
+ * Usuario logueado con su rol resuelto.
+ *
+ * El rol no vive en la cookie: se calcula en cada petición desde `roles.config.ts`, así
+ * que un cambio de permisos aplica sin esperar a que caduque la sesión.
+ */
+export type CurrentUser = SessionUser & { role: Role }
+
 /** Posición/tamaño de una sala dentro del lienzo del mapa (en % del área visible). */
 export interface RoomMapPosition {
   x: number

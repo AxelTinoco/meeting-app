@@ -40,15 +40,53 @@ export function getGoogleServiceAccount(): GoogleServiceAccount {
   }
 }
 
+export interface GoogleOAuthConfig {
+  clientId: string
+  clientSecret: string
+  /** Sobrescribe la URI de callback; si no está, se deriva del host de la petición. */
+  redirectUri?: string
+}
+
 /**
- * Correo del usuario a impersonar mientras no exista login OAuth.
+ * Credenciales del OAuth client (login del equipo). Lanza si faltan.
  *
- * Debe ser un usuario REAL del dominio: es el `subject` de la domain-wide delegation,
- * así que con credenciales reales toda llamada a Calendar falla si no existe.
- * Se configura en `.dev.vars` (dev) o `wrangler secret put` (prod).
+ * Es un client de tipo "web": el secret vive solo en el servidor, nunca se manda al
+ * navegador. Los redirect URIs tienen que estar dados de alta en Google Cloud Console.
  */
-export function getDevUserEmail(): string | undefined {
-  return readEnv('DEV_USER_EMAIL')?.trim() || undefined
+export function getGoogleOAuth(): GoogleOAuthConfig {
+  const clientId = readEnv('GOOGLE_OAUTH_CLIENT_ID')
+  const clientSecret = readEnv('GOOGLE_OAUTH_CLIENT_SECRET')
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'Faltan credenciales de OAuth: GOOGLE_OAUTH_CLIENT_ID y/o GOOGLE_OAUTH_CLIENT_SECRET.',
+    )
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri: readEnv('GOOGLE_OAUTH_REDIRECT_URI')?.trim() || undefined,
+  }
+}
+
+/** Longitud mínima del secreto de sesión que exige el sellado de la cookie. */
+const SESSION_SECRET_MIN_LENGTH = 32
+
+/**
+ * Secreto con el que se cifra y firma la cookie de sesión.
+ *
+ * Cambiarlo invalida todas las sesiones activas (que es justo lo que se quiere si
+ * alguna vez se filtra). Genera uno con `openssl rand -base64 48`.
+ */
+export function getSessionSecret(): string {
+  const secret = readEnv('SESSION_SECRET')?.trim()
+  if (!secret || secret.length < SESSION_SECRET_MIN_LENGTH) {
+    throw new Error(
+      `Falta SESSION_SECRET o es demasiado corto (mínimo ${SESSION_SECRET_MIN_LENGTH} caracteres). Genera uno con \`openssl rand -base64 48\`.`,
+    )
+  }
+  return secret
 }
 
 /** true si hay credenciales de service account configuradas (activa la integración real). */

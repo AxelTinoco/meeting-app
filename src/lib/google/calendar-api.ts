@@ -321,6 +321,21 @@ async function resolveEvent(
   return null
 }
 
+/**
+ * Devuelve una reserva concreta, o null si ya no existe.
+ *
+ * Se usa para saber de quién es antes de dejar editarla o cancelarla, así que la lectura
+ * va con el `subject` de quien pregunta: si no puede ver el evento, tampoco puede tocarlo.
+ */
+export async function getEvent(
+  subject: string,
+  roomEmail: string,
+  eventId: string,
+): Promise<Booking | null> {
+  const found = await resolveEvent(subject, roomEmail, eventId)
+  return found ? eventToBooking(found.event, roomEmail) : null
+}
+
 /** Actualiza la junta conservando el evento (y por tanto las respuestas de los invitados). */
 export async function patchEvent(
   eventId: string,
