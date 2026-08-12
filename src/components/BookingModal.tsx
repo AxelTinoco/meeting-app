@@ -74,7 +74,7 @@ export function BookingModal({
       }
       if (isEdit) {
         await updateBookingFn({
-          data: { ...payload, eventId: booking!.eventId },
+          data: { ...payload, eventId: booking.eventId },
         })
       } else {
         await createBookingFn({ data: payload })

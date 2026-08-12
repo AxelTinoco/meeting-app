@@ -5,10 +5,12 @@
 // lugar que las lee, para facilitar cablear las credenciales reales después.
 
 function readEnv(key: string): string | undefined {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key]
+  // @types/node declara `process.env` como siempre presente, pero en un Worker sin
+  // `nodejs_compat` puede no estarlo: leemos desde globalThis con un tipo honesto.
+  const g = globalThis as {
+    process?: { env?: Record<string, string | undefined> }
   }
-  return undefined
+  return g.process?.env?.[key]
 }
 
 export interface GoogleServiceAccount {

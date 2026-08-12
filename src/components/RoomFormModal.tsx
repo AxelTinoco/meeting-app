@@ -35,7 +35,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
       }
       if (isEdit) {
         await updateRoomFn({
-          data: { ...payload, resourceEmail: room!.resourceEmail },
+          data: { ...payload, resourceEmail: room.resourceEmail },
         })
       } else {
         await createRoomFn({ data: payload })
@@ -65,7 +65,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             {isEdit ? 'Editar sala' : 'Nueva sala'}
           </h2>
           <p className="text-sm text-ink-500">
-            {isEdit ? room!.resourceEmail : 'Se agregará al mapa de salas'}
+            {isEdit ? room.resourceEmail : 'Se agregará al mapa de salas'}
           </p>
         </div>
         <button
