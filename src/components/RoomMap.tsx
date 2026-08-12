@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { RoomTile } from './RoomTile'
 import { RoomDetailModal } from './RoomDetailModal'
 import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
+import { springSnappy, staggerContainer } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
 import type { Booking, CurrentUser, Room } from '../lib/types'
 
@@ -48,7 +50,14 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
       )}
 
       <div className="absolute inset-0 p-10">
-        <div className="relative h-full w-full">
+        {/* El contenedor no anima nada propio: escalona la entrada de las salas
+            para que el plano se dibuje, en vez de aparecer de golpe. */}
+        <motion.div
+          className="relative h-full w-full"
+          variants={staggerContainer(0.05)}
+          initial="hidden"
+          animate="visible"
+        >
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="card-empty px-6 py-8">
@@ -56,15 +65,17 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
               </p>
             </div>
           ) : (
-            rooms.map((room) => (
-              <RoomTile
-                key={room.resourceEmail}
-                view={deriveRoomView(room, bookings, now)}
-                onSelect={(r) => setSelectedEmail(r.resourceEmail)}
-              />
-            ))
+            <AnimatePresence>
+              {rooms.map((room) => (
+                <RoomTile
+                  key={room.resourceEmail}
+                  view={deriveRoomView(room, bookings, now)}
+                  onSelect={(r) => setSelectedEmail(r.resourceEmail)}
+                />
+              ))}
+            </AnimatePresence>
           )}
-        </div>
+        </motion.div>
       </div>
 
       <div className="card absolute bottom-6 right-6 flex flex-col overflow-hidden">
@@ -83,30 +94,29 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
         />
       )}
 
-      {creatingRoom && (
-        <RoomFormModal
-          onClose={() => setCreatingRoom(false)}
-          onSaved={onChanged}
-        />
-      )}
+      <AnimatePresence>
+        {creatingRoom && (
+          <RoomFormModal
+            key="room-create"
+            onClose={() => setCreatingRoom(false)}
+            onSaved={onChanged}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-function ZoomButton({
-  icon,
-  label,
-}: {
-  icon: GrndIconName
-  label: string
-}) {
+function ZoomButton({ icon, label }: { icon: GrndIconName; label: string }) {
   return (
-    <button
+    <motion.button
       type="button"
       aria-label={label}
+      whileTap={{ scale: 0.88 }}
+      transition={springSnappy}
       className="flex size-11 items-center justify-center text-ink-500 transition-colors hover:bg-ink-50 hover:text-brand-600"
     >
       <GrndIcon name={icon} size={18} />
-    </button>
+    </motion.button>
   )
 }

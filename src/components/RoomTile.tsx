@@ -1,6 +1,8 @@
+import { motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { ROOM_STATUS_STYLES, type RoomView } from '../lib/dashboard'
 import { mxTimeLabel } from '../lib/mexico-time'
+import { springSnappy, tileVariants } from '../lib/motion'
 import type { Room } from '../lib/types'
 
 interface RoomTileProps {
@@ -21,7 +23,7 @@ export function RoomTile({ view, onSelect }: RoomTileProps) {
       : 'Disponible todo el día'
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={() => onSelect(room)}
       style={{
@@ -30,7 +32,17 @@ export function RoomTile({ view, onSelect }: RoomTileProps) {
         width: `${pos.w}%`,
         height: `${pos.h}%`,
       }}
-      className={`group absolute rounded-2xl border-2 ${style.border} ${style.tile} text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md`}
+      variants={tileVariants}
+      // `initial` explícito aunque el padre ya orqueste: es lo que hace que el
+      // SSR emita el estilo inicial. Sin él el HTML llega con la sala visible y
+      // la hidratación la manda a opacidad 0 — un parpadeo en la primera carga.
+      initial="hidden"
+      exit="exit"
+      // El levantar/hundir lo lleva el resorte, no `transition-all`: así el hover
+      // se puede interrumpir a media animación sin que la sala «rebote» de vuelta.
+      whileHover={{ y: -4, transition: springSnappy }}
+      whileTap={{ scale: 0.985, transition: springSnappy }}
+      className={`group absolute rounded-2xl border-2 ${style.border} ${style.tile} text-left shadow-sm transition-shadow hover:shadow-md`}
     >
       <span className="absolute -top-3.5 left-4 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-950 shadow-sm">
         <span className={`size-2 rounded-full ${style.dot}`} />
@@ -48,6 +60,6 @@ export function RoomTile({ view, onSelect }: RoomTileProps) {
           </span>
         )}
       </span>
-    </button>
+    </motion.button>
   )
 }

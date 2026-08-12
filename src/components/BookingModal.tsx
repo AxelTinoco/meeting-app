@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { ModalShell } from './ModalShell'
 import { createBookingFn, updateBookingFn } from '../server/bookings'
 import { AttendeesInput } from './AttendeesInput'
 import { mxISO, mxISODate, mxInputParts } from '../lib/mexico-time'
@@ -91,70 +93,94 @@ export function BookingModal({
   }
 
   return (
-    <div className="modal-overlay z-50" onClick={onClose}>
-      <div
-        className="modal-panel max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-900">
-              {isEdit ? 'Editar reserva' : 'Reservar sala'}
-            </h2>
-            <p className="text-sm text-ink-500">{room.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-icon"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
+    <ModalShell
+      onClose={onClose}
+      overlayClassName="z-50"
+      panelClassName="max-w-md p-6"
+    >
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-ink-900">
+            {isEdit ? 'Editar reserva' : 'Reservar sala'}
+          </h2>
+          <p className="text-sm text-ink-500">{room.name}</p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-icon"
+          aria-label="Cerrar"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Título">
-            <input
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej. Reunión con Volaris"
-              className="input"
-            />
-          </Field>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Título">
+          <input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej. Reunión con Volaris"
+            className="input"
+          />
+        </Field>
 
-          <Field label="Tipo de reunión">
-            <select
-              value={meetingType}
-              onChange={(e) => setMeetingType(e.target.value as MeetingType)}
-              className="input"
-            >
-              {MEETING_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+        <Field label="Tipo de reunión">
+          <select
+            value={meetingType}
+            onChange={(e) => setMeetingType(e.target.value as MeetingType)}
+            className="input"
+          >
+            {MEETING_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </Field>
 
+        {/* El campo aparece al elegir "Cliente externo": se despliega en alto
+              para que el resto del formulario no salte de golpe. */}
+        <AnimatePresence initial={false}>
           {meetingType === 'cliente' && (
-            <Field label="Cliente">
-              <input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Nombre del cliente externo"
-                className="input"
-              />
-            </Field>
+            <motion.div
+              key="cliente"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <Field label="Cliente">
+                <input
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Nombre del cliente externo"
+                  className="input"
+                />
+              </Field>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          <Field label="Fecha">
+        <Field label="Fecha">
+          <input
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="input"
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Inicio">
             <input
-              type="date"
+              type="time"
               required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
               className="input"
             />
           </Field>
@@ -205,24 +231,41 @@ export function BookingModal({
               </p>
             )}
           </Field>
+        </div>
 
-          {error && <p className="alert-error">{error}</p>}
+        <Field
+          label={`Asistentes${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
+        >
+          <input
+            type="number"
+            min={1}
+            value={attendeeCount}
+            onChange={(e) => setAttendeeCount(e.target.value)}
+            className="input"
+          />
+          {overCapacity && (
+            <p className="mt-1 text-xs text-amarillo-600">
+              Excede la capacidad de la sala (informativo).
+            </p>
+          )}
+        </Field>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="btn-primary">
-              {submitting
-                ? 'Guardando…'
-                : isEdit
-                  ? 'Guardar cambios'
-                  : 'Reservar'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {error && <p className="alert-error">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-ghost">
+            Cancelar
+          </button>
+          <button type="submit" disabled={submitting} className="btn-primary">
+            {submitting
+              ? 'Guardando…'
+              : isEdit
+                ? 'Guardar cambios'
+                : 'Reservar'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   )
 }
 
