@@ -67,6 +67,25 @@ export function staggerContainer(stagger = 0.04, delay = 0): Variants {
    primera pintada dejaba el plano en blanco hasta que hidrataba el bundle. Es la
    única excepción a "el movimiento vive en motion", y es deliberada. */
 
+/* --- Reloj ----------------------------------------------------------------
+   Cada dígito es su propia presencia: al cambiar el minuto solo rueda el dígito
+   que cambió, no el reloj entero. El nuevo cae desde arriba y el viejo se va por
+   abajo, así que el movimiento se lee como una rueda que gira, no como un fade.
+
+   Los desplazamientos van en % (relativos a la altura del propio dígito) para
+   que el recorrido siga siendo exactamente una vuelta si cambia el tamaño de
+   letra, y para que el `overflow-hidden` del carril los recorte a tiempo.
+   -------------------------------------------------------------------------- */
+export const clockDigitVariants: Variants = {
+  hidden: { y: '-110%', opacity: 0 },
+  visible: {
+    y: '0%',
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 520, damping: 38, mass: 0.7 },
+  },
+  exit: { y: '110%', opacity: 0, transition: exit },
+}
+
 /**
  * Tarjeta de la agenda: entra desde la derecha, el borde del que cuelga el riel.
  *

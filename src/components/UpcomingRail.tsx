@@ -3,12 +3,24 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
 import { MX_TZ, mxTimeLabel } from '../lib/mexico-time'
-import { railItemVariants, staggerContainer } from '../lib/motion'
+import {
+  clockDigitVariants,
+  railItemVariants,
+  staggerContainer,
+} from '../lib/motion'
 import type { UpcomingItem, UpcomingStatus } from '../lib/dashboard'
 import type { BookingAttendee } from '../lib/types'
 
 interface UpcomingRailProps {
   items: UpcomingItem[]
+  /**
+   * Solo para el reloj, y por eso sigue admitiendo `null` mientras el cliente no
+   * hidrata: los estados de las tarjetas ya vienen resueltos con la hora del servidor
+   * (ver `serverNow` en la ruta), pero el reloj imprime nombre de día y de mes con
+   * `Intl`, y esas cadenas pueden no coincidir letra por letra entre el runtime del
+   * servidor y el navegador. Mostrar «––:––» un instante es preferible a arriesgar
+   * una discrepancia de hidratación en cada carga.
+   */
   now: Date | null
 }
 
@@ -45,46 +57,111 @@ export function UpcomingRail({ items, now }: UpcomingRailProps) {
   )
 }
 
-function Clock({ now }: { now: Date | null }) {
-  const time = now
-    ? new Intl.DateTimeFormat('en-US', {
-        timeZone: MX_TZ,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      }).format(now)
-    : '––:––'
+const CLOCK_FMT = new Intl.DateTimeFormat('en-US', {
+  timeZone: MX_TZ,
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+})
 
-  const date = now
-    ? new Intl.DateTimeFormat('es-MX', {
-        timeZone: MX_TZ,
-        weekday: 'long',
-        day: 'numeric',
-        month: 'short',
-      })
-        .format(now)
-        .toUpperCase()
-    : ''
+const DATE_FMT = new Intl.DateTimeFormat('es-MX', {
+  timeZone: MX_TZ,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'short',
+})
+
+/** La hora partida en piezas, para poder animar hora y minutos por separado. */
+function clockParts(now: Date) {
+  const parts = CLOCK_FMT.formatToParts(now)
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ''
+  return {
+    hour: value('hour'),
+    minute: value('minute'),
+    dayPeriod: value('dayPeriod'),
+  }
+}
+
+function Clock({ now }: { now: Date | null }) {
+  const date = now ? DATE_FMT.format(now).toUpperCase() : ''
 
   return (
     <div suppressHydrationWarning>
-      <p className="text-5xl font-extrabold tracking-tight text-ink-900 tabular-nums">
-        {/* La `key` es la hora: al cambiar el minuto el span se remonta y vuelve
-            a correr su `initial`, así el reloj «cae» en vez de saltar. */}
-        <motion.span
-          key={time}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="inline-block"
-        >
-          {time}
-        </motion.span>
+      <p className="flex items-end text-5xl font-extrabold leading-none tracking-tight text-ink-900 tabular-nums">
+        {now ? <ClockDigits {...clockParts(now)} /> : '––:––'}
       </p>
-      <p className="mt-1 text-xs font-semibold tracking-widest text-ink-400">
-        {date || ' '}
+      <p className="mt-2 text-xs font-semibold tracking-widest text-ink-400">
+        {date || ' '}
       </p>
     </div>
+  )
+}
+
+function ClockDigits({
+  hour,
+  minute,
+  dayPeriod,
+}: ReturnType<typeof clockParts>) {
+  return (
+    <>
+      <RollingNumber value={hour} />
+      {/* Los dos puntos no cambian nunca, y por eso quedan fuera de la
+          animacion: dentro de ella se moverian en cada minuto sin motivo. */}
+      <span aria-hidden>:</span>
+      <RollingNumber value={minute} />
+      {dayPeriod && (
+        // `layout` para que acompanie el desplazamiento cuando la hora pasa de
+        // una cifra a dos (9 -> 10) en vez de saltar a su nueva posicion.
+        <motion.span layout className="pb-0.5 pl-1.5 text-lg text-ink-400">
+          {dayPeriod}
+        </motion.span>
+      )}
+    </>
+  )
+}
+
+/**
+ * Numero que rueda digito a digito.
+ *
+ * Cada posicion tiene su propia presencia, asi que al pasar de 3:59 a 4:00 solo
+ * se mueven los digitos que de verdad cambiaron y el resto se queda quieto: eso
+ * es lo que lo hace leer como una rueda y no como un parpadeo del reloj entero.
+ *
+ * `initial={false}` evita que ruede en la primera pintada (nada ha cambiado
+ * todavia: acaba de aparecer) y `mode="popLayout"` saca del flujo al digito que
+ * se va, para que el que entra ocupe su sitio en lugar de empujarlo a un lado.
+ */
+function RollingNumber({ value }: { value: string }) {
+  return (
+    // `layout` porque el ancho cambia al pasar de una cifra a dos (9 -> 10) y
+    // sin el, lo que va detras pega un salto justo en ese momento.
+    <motion.span layout className="flex">
+      {value.split('').map((digit, i) => (
+        <span
+          // La posicion dentro del numero es la identidad estable del carril; el
+          // valor es lo que se remonta dentro de el.
+          key={i}
+          // `relative` lo exige popLayout (ahi va absoluto el saliente) y
+          // `overflow-hidden` es el que recorta la vuelta de la rueda; el padding
+          // deja respirar a la tipografia para que no se corte en reposo.
+          className="relative inline-block overflow-hidden py-[0.08em]"
+        >
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.span
+              key={digit}
+              variants={clockDigitVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="block"
+            >
+              {digit}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+      ))}
+    </motion.span>
   )
 }
 

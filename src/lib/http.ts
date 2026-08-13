@@ -27,6 +27,22 @@ export function safeInternalPath(
   return value
 }
 
+/**
+ * Añade un parámetro a una ruta interna sin perder los que ya trae.
+ *
+ * La base es ficticia y se descarta al volver a serializar: solo está para que `URL`
+ * acepte una ruta relativa. Nunca sale un destino absoluto de aquí.
+ */
+export function withSearchParam(
+  path: string,
+  key: string,
+  value: string,
+): string {
+  const url = new URL(path, 'http://interno.local')
+  url.searchParams.set(key, value)
+  return `${url.pathname}${url.search}${url.hash}`
+}
+
 /** URI de callback de OAuth: la del env si está fijada, o la del host de la petición. */
 export function resolveCallbackUri(override?: string): string {
   return override || new URL('/api/auth/callback', getRequestUrl()).toString()

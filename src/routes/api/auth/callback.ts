@@ -7,7 +7,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { DomainNotAllowedError, exchangeCodeForUser } from '../../../lib/google/oauth'
 import { getGoogleOAuth } from '../../../lib/env'
 import { consumeOAuthFlow, writeSessionUser } from '../../../lib/session'
-import { redirectResponse, resolveCallbackUri } from '../../../lib/http'
+import {
+  redirectResponse,
+  resolveCallbackUri,
+  withSearchParam,
+} from '../../../lib/http'
+import { WELCOME_PARAM, WELCOME_VALUE } from '../../../lib/welcome'
 
 /** Motivos que entiende la pantalla de login. */
 type LoginError = 'cancelado' | 'estado' | 'dominio' | 'google'
@@ -45,7 +50,12 @@ export const Route = createFileRoute('/api/auth/callback')({
             expectedNonce: flow.nonce,
           })
           await writeSessionUser(user)
-          return redirectResponse(flow.redirectTo)
+          // La marca de bienvenida distingue "acabo de entrar" de "recargué la página":
+          // es lo único que sabe el destino para animar la entrada. El propio tablero la
+          // borra de la URL en cuanto hidrata, así que no sobrevive a un F5.
+          return redirectResponse(
+            withSearchParam(flow.redirectTo, WELCOME_PARAM, WELCOME_VALUE),
+          )
         } catch (error) {
           if (error instanceof DomainNotAllowedError) return backToLogin('dominio')
           console.error('[auth] falló el callback de OAuth:', error)
