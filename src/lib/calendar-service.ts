@@ -22,6 +22,7 @@ import {
   listRoomEvents,
   listMyEvents,
 } from './google/calendar-api'
+import { withAttendeePhotos } from './google/directory-api'
 
 export interface CalendarService {
   listRooms: () => Promise<Room[]>
@@ -80,7 +81,10 @@ const realService: CalendarService = {
       range,
       rooms.map((r) => r.resourceEmail),
     )
-    return bookings.sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime))
+    const sorted = bookings.sort(
+      (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
+    )
+    return withAttendeePhotos(sorted, userEmail)
   },
   async getDayBookings(range, subject) {
     const rooms = listRoomsConfig()
@@ -98,9 +102,10 @@ const realService: CalendarService = {
     for (const booking of mine) byId.set(booking.eventId, booking)
     for (const booking of perRoom.flat()) byId.set(booking.eventId, booking)
 
-    return [...byId.values()].sort(
+    const sorted = [...byId.values()].sort(
       (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
     )
+    return withAttendeePhotos(sorted, subject)
   },
   async createRoom() {
     throw new Error(ROOMS_NOT_SUPPORTED)

@@ -44,6 +44,34 @@ te sea más cómoda: la A te toma 2 minutos y no me das ningún acceso.
 Esos dos permisos dejan que la app lea disponibilidad y cree/borre **eventos de calendario**.
 No dan acceso a correo, archivos, contraseñas ni a ningún otro dato del equipo.
 
+### Permiso extra: fotos de perfil del equipo (opcional)
+
+Para que en las reservas se vea la **cara** de cada invitado en vez de sus iniciales, hace
+falta un tercer ámbito:
+
+```
+https://www.googleapis.com/auth/directory.readonly
+```
+
+Es de **solo lectura del directorio de la empresa** — los mismos nombres, correos y fotos
+que cualquiera del equipo ya ve al escribir un invitado en Google Calendar. No da acceso a
+crear, editar ni borrar usuarios.
+
+Va **en la misma entrada** que los dos de Calendar (la del cliente `sala-juntas`), no en
+una nueva: la consola indexa las entradas por ID de cliente y no admite dos con el mismo.
+Pasos: en la fila del cliente → *Editar* → en el campo vacío de **Permisos de OAuth** se
+pega el ámbito → **Autorizar**. Ojo: **no borrar las filas de Calendar** que ya están, o la
+app deja de poder leer y crear eventos.
+
+Que estén en la misma entrada no le quita el aislamiento: esta lista es solo el permiso
+máximo que la app *puede* pedir. En el código los ámbitos van en dos grupos (`CALENDAR_SCOPES`
+y `DIRECTORY_SCOPES`) y cada token pide el suyo, así que si el del directorio falla, lo
+único que se pierde son las fotos.
+
+Además hay que **habilitar la People API** en el proyecto de Google Cloud
+`sala-juntas-504623` (Cloud Console → APIs y servicios → Habilitar APIs → *People API*).
+Eso no necesita Súper administrador.
+
 ---
 
 ## Opción B: dame Súper administrador temporalmente

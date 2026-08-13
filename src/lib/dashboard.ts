@@ -3,7 +3,7 @@
 // pintan las salas del mapa y el panel "Próximas".
 
 import { DAY_END_HOUR, mxDateTime, mxISODate } from './mexico-time'
-import type { Booking, Room } from './types'
+import type { Booking, BookingAttendee, Room } from './types'
 
 export type RoomStatus = 'active' | 'reserved' | 'free'
 
@@ -98,6 +98,8 @@ export interface UpcomingItem {
   roomName?: string
   start: string
   end: string
+  /** Invitados, para la pila de avatares de la tarjeta. Las tarjetas "Libre" no tienen. */
+  attendees?: BookingAttendee[]
 }
 
 const ROOM_NAME = (rooms: Room[], email: string) =>
@@ -124,6 +126,7 @@ export function buildUpcoming(
       roomName: ROOM_NAME(rooms, b.roomEmail),
       start: b.startTime,
       end: b.endTime,
+      attendees: b.attendees,
     }))
   }
 
@@ -139,6 +142,7 @@ export function buildUpcoming(
     roomName: ROOM_NAME(rooms, b.roomEmail),
     start: b.startTime,
     end: b.endTime,
+    attendees: b.attendees,
   }))
 
   const free = nextFreeSlot(sorted, now)

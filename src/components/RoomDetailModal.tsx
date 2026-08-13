@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
 import { ModalShell } from './ModalShell'
 import { BookingModal } from './BookingModal'
@@ -197,9 +198,20 @@ export function RoomDetailModal({
                           {b.attendees.map((a) => (
                             <span
                               key={a.email}
-                              className={RESPONSE_BADGE[a.response]}
+                              className={`${RESPONSE_BADGE[a.response]} gap-1`}
                               title={`${a.email} — ${RESPONSE_LABEL[a.response]}${a.external ? ' (externo)' : ''}`}
                             >
+                              {/* Los externos no están en el directorio: se quedan con
+                                  iniciales y la flecha que ya los distinguía. */}
+                              <Avatar
+                                email={a.email}
+                                name={a.displayName}
+                                picture={a.picture}
+                                size={16}
+                                // Recupera parte del padding del badge: si no, la cara
+                                // queda despegada del borde izquierdo.
+                                className="-ml-1"
+                              />
                               {a.external ? '↗ ' : ''}
                               {attendeeLabel(a)}
                             </span>

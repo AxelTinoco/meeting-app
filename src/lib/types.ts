@@ -102,6 +102,12 @@ export interface BookingAttendee {
   response: AttendeeResponse
   /** true si el correo no pertenece al dominio de Gerundio. */
   external: boolean
+  /**
+   * Foto de perfil del directorio de Workspace. No viene de Calendar: se cruza por correo
+   * contra la People API (ver `google/directory-api.ts`). Solo la tiene gente del dominio
+   * que subió foto; para el resto la UI cae a las iniciales.
+   */
+  picture?: string
 }
 
 /** Intervalo ocupado devuelto por freebusy. */
