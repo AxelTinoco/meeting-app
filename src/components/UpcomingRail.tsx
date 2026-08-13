@@ -8,8 +8,11 @@ import {
   railItemVariants,
   staggerContainer,
 } from '../lib/motion'
-import type { UpcomingItem, UpcomingStatus } from '../lib/dashboard'
-import type { BookingAttendee } from '../lib/types'
+import type {
+  UpcomingItem,
+  UpcomingPerson,
+  UpcomingStatus,
+} from '../lib/dashboard'
 
 interface UpcomingRailProps {
   items: UpcomingItem[]
@@ -31,7 +34,7 @@ export function UpcomingRail({ items, now }: UpcomingRailProps) {
 
       <div className="mb-4 mt-8 flex items-center justify-between">
         <h2 className="text-lg font-bold text-ink-900">Agenda de hoy</h2>
-        <MoreHorizontal size={18} className="text-ink-400" />
+        <MoreHorizontal size={18} className="text-ink-500" />
       </div>
 
       {/* La agenda se recalcula cada minuto (useNow): las tarjetas cambian de
@@ -91,7 +94,7 @@ function Clock({ now }: { now: Date | null }) {
       <p className="flex items-end text-5xl font-extrabold leading-none tracking-tight text-ink-900 tabular-nums">
         {now ? <ClockDigits {...clockParts(now)} /> : '––:––'}
       </p>
-      <p className="mt-2 text-xs font-semibold tracking-widest text-ink-400">
+      <p className="mt-2 text-xs font-semibold tracking-widest text-ink-500">
         {date || ' '}
       </p>
     </div>
@@ -113,7 +116,7 @@ function ClockDigits({
       {dayPeriod && (
         // `layout` para que acompanie el desplazamiento cuando la hora pasa de
         // una cifra a dos (9 -> 10) en vez de saltar a su nueva posicion.
-        <motion.span layout className="pb-0.5 pl-1.5 text-lg text-ink-400">
+        <motion.span layout className="pb-0.5 pl-1.5 text-lg text-ink-500">
           {dayPeriod}
         </motion.span>
       )}
@@ -233,13 +236,13 @@ function UpcomingCard({ item }: { item: UpcomingItem }) {
       <p className="text-sm font-semibold text-ink-900">{item.title}</p>
       <div className="mt-1 flex items-center justify-between gap-2">
         {item.roomName ? (
-          <p className="inline-flex items-center gap-1 text-xs text-ink-400">
+          <p className="inline-flex items-center gap-1 text-xs text-ink-500">
             <GrndIcon name="target" size={12} /> {item.roomName}
           </p>
         ) : (
           <span />
         )}
-        <AttendeeStack attendees={item.attendees} />
+        <AttendeeStack people={item.people} />
       </div>
     </motion.div>
   )
@@ -248,34 +251,41 @@ function UpcomingCard({ item }: { item: UpcomingItem }) {
 /** Cuántas caras caben en la tarjeta antes de resumir con "+N". */
 const STACK_MAX = 4
 
-/** Pila de caras superpuestas. El anillo blanco es lo que separa una foto de la siguiente. */
-function AttendeeStack({ attendees }: { attendees?: BookingAttendee[] }) {
-  if (!attendees?.length) return null
+const personName = (p: UpcomingPerson) => p.displayName ?? p.email
 
-  const shown = attendees.slice(0, STACK_MAX)
-  const rest = attendees.length - shown.length
+/**
+ * Pila de caras superpuestas: quien reservó y sus invitados.
+ *
+ * El anillo es lo que separa una foto de la siguiente; el del organizador va en azul de
+ * marca para distinguirlo, porque en la pila no hay sitio para escribir nombres. Va
+ * siempre primero (lo ordena `peopleOf`), así que nunca se lo come el "+N".
+ */
+function AttendeeStack({ people }: { people?: UpcomingPerson[] }) {
+  if (!people?.length) return null
+
+  const shown = people.slice(0, STACK_MAX)
+  const rest = people.length - shown.length
 
   return (
     <div className="flex shrink-0 items-center -space-x-1.5">
-      {shown.map((a) => (
+      {shown.map((p) => (
         <Avatar
-          key={a.email}
-          email={a.email}
-          name={a.displayName}
-          picture={a.picture}
+          key={p.email}
+          email={p.email}
+          name={p.displayName}
+          picture={p.picture}
           size={22}
           // Aquí el avatar va solo, sin el nombre al lado: sin `alt` un lector de
-          // pantalla no diría a quién corresponde la cara.
-          alt={a.displayName ?? a.email}
-          className="ring-2 ring-white"
+          // pantalla no diría a quién corresponde la cara. Y el anillo de color no
+          // dice nada por sí solo, así que "organiza" también va en el texto.
+          alt={p.isOrganizer ? `${personName(p)} (organiza)` : personName(p)}
+          title={p.isOrganizer ? `${personName(p)} · organiza` : undefined}
+          className={p.isOrganizer ? 'ring-2 ring-brand-400' : 'ring-2 ring-white'}
         />
       ))}
       {rest > 0 && (
         <span
-          title={attendees
-            .slice(STACK_MAX)
-            .map((a) => a.displayName ?? a.email)
-            .join(', ')}
+          title={people.slice(STACK_MAX).map(personName).join(', ')}
           className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink-200 text-[9px] font-semibold leading-none text-ink-600 ring-2 ring-white"
         >
           +{rest}

@@ -89,6 +89,12 @@ export function deriveRoomView(room: Room, bookings: Booking[], now: Date): Room
 
 export type UpcomingStatus = 'active' | 'incoming' | 'ended' | 'free'
 
+/** Una cara de la pila de la tarjeta. */
+export interface UpcomingPerson extends BookingAttendee {
+  /** Quien reservó: va primero en la pila y lleva anillo de marca. */
+  isOrganizer?: boolean
+}
+
 export interface UpcomingItem {
   id: string
   status: UpcomingStatus
@@ -96,8 +102,32 @@ export interface UpcomingItem {
   roomName?: string
   start: string
   end: string
-  /** Invitados, para la pila de avatares de la tarjeta. Las tarjetas "Libre" no tienen. */
-  attendees?: BookingAttendee[]
+  /**
+   * Quién estuvo, para la pila de avatares: el organizador primero y luego sus invitados.
+   * Las tarjetas "Libre" no tienen.
+   */
+  people?: UpcomingPerson[]
+}
+
+/**
+ * Compone las caras de una reserva.
+ *
+ * El organizador va incluido a propósito: `Booking.attendees` son solo los invitados, así
+ * que una junta donde alguien apartó la sala sin invitar a nadie por correo —el caso más
+ * común— no mostraba ninguna cara y no había forma de saber de quién era.
+ */
+function peopleOf(b: Booking): UpcomingPerson[] | undefined {
+  const guests = b.attendees ?? []
+  const { organizer } = b
+  if (!organizer) return guests.length ? guests : undefined
+
+  // `attendees` ya viene sin el organizador; el filtro es por si una reserva vieja lo
+  // trajera duplicado, que se vería como dos veces la misma cara.
+  const email = organizer.email.toLowerCase()
+  return [
+    { ...organizer, isOrganizer: true },
+    ...guests.filter((a) => a.email.toLowerCase() !== email),
+  ]
 }
 
 const ROOM_NAME = (rooms: Room[], email: string) =>
@@ -127,7 +157,7 @@ export function buildUpcoming(
     roomName: ROOM_NAME(rooms, b.roomEmail),
     start: b.startTime,
     end: b.endTime,
-    attendees: b.attendees,
+    people: peopleOf(b),
   }))
 
   const free = nextFreeSlot(sorted, now)

@@ -22,7 +22,7 @@ export function AvailabilityBar({ busy }: AvailabilityBarProps) {
           />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-ink-400">
+      <div className="mt-1 flex justify-between text-[10px] text-ink-500">
         {axis.map((h) => (
           <span key={h}>{h}h</span>
         ))}

@@ -83,6 +83,14 @@ export interface Booking {
   /** Invitados (sin la sala ni el organizador), con su respuesta a la invitación. */
   attendees?: BookingAttendee[]
   /**
+   * Quien reservó, ya listo para pintar (nombre y foto del directorio).
+   *
+   * Va aparte de `attendees` a propósito: esa lista es la de invitados editable —el modal
+   * de edición la usa tal cual para prellenar los correos— y el organizador no es un
+   * invitado más. Ausente en las reservas viejas, donde la organizadora era la sala.
+   */
+  organizer?: BookingAttendee
+  /**
    * Respuesta de la sala a la invitación. Google tarda ~15s en contestar, así que una
    * reserva recién hecha aparece como `needsAction` hasta que el recurso confirma.
    */

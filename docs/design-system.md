@@ -87,7 +87,7 @@ sobre `btn` y `badge-libre` sobre `badge`.
 
 ## Contraste
 
-Todos los pares reales de la UI cumplen WCAG AA. Los más ajustados:
+Los pares de texto de la UI cumplen WCAG AA. Los más ajustados:
 
 | Par                                         | Ratio   |
 | ------------------------------------------- | ------- |
@@ -96,5 +96,11 @@ Todos los pares reales de la UI cumplen WCAG AA. Los más ajustados:
 | blanco sobre `rosa-600` (botón destructivo) | 9.60:1  |
 | negro sobre `aqua-300` (neón sólido)        | 15.96:1 |
 | negro sobre `amarillo-200` (chip demo)      | 18.38:1 |
+
+**`ink-500` es el paso más claro que puede llevar texto.** `ink-400` se queda en 2.64:1, muy
+por debajo del 4.5:1 de AA: es para decoración, nunca para letra. Hasta la auditoría de
+accesibilidad del 2026-08-13 se usaba como color de texto en ocho sitios, y esta misma
+sección afirmaba que *todos* los pares cumplían — no era cierto. La tabla completa, con los
+pares que siguen por debajo del umbral, está en [accesibilidad.md](accesibilidad.md).
 
 Al añadir una combinación nueva, verifica que llegue a 4.5:1 (texto) o 3:1 (bordes e iconos).

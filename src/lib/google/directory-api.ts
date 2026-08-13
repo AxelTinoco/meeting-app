@@ -6,7 +6,7 @@
 // indexa en memoria — con el tamaño de Gerundio es una sola llamada.
 
 import { DIRECTORY_SCOPES } from '../constants'
-import type { Booking } from '../types'
+import type { Booking, BookingAttendee } from '../types'
 import { getAccessToken } from './service-account'
 
 const PEOPLE_URL = 'https://people.googleapis.com/v1/people:listDirectoryPeople'
@@ -137,8 +137,15 @@ export async function getDirectory(
   return people
 }
 
+/** Personas del dominio a las que este booking podría ponerles cara. */
+function domainPeople(b: Booking): BookingAttendee[] {
+  return [b.organizer, ...(b.attendees ?? [])].filter(
+    (p): p is BookingAttendee => !!p && !p.external,
+  )
+}
+
 /**
- * Añade a cada asistente su foto (y su nombre, si Calendar no lo trajo).
+ * Añade a cada asistente —y al organizador— su foto (y su nombre, si Calendar no lo trajo).
  *
  * Degrada en silencio: si la People API no está habilitada en el proyecto o el scope no
  * está autorizado en la delegación de dominio, se devuelven las reservas tal cual. Las
@@ -149,7 +156,7 @@ export async function withAttendeePhotos(
   subject: string,
 ): Promise<Booking[]> {
   // Nadie a quien ponerle cara: ni siquiera pedimos el token.
-  if (!bookings.some((b) => b.attendees?.some((a) => !a.external))) return bookings
+  if (!bookings.some((b) => domainPeople(b).length)) return bookings
 
   let directory: Map<string, DirectoryPerson>
   try {
@@ -159,21 +166,21 @@ export async function withAttendeePhotos(
     return bookings
   }
 
-  return bookings.map((booking) => {
-    if (!booking.attendees?.length) return booking
+  const withPhoto = (person: BookingAttendee): BookingAttendee => {
+    // Los externos no están en el directorio: ni se busca.
+    if (person.external) return person
+    const found = directory.get(person.email.toLowerCase())
+    if (!found) return person
     return {
-      ...booking,
-      attendees: booking.attendees.map((attendee) => {
-        // Los externos no están en el directorio: ni se busca.
-        if (attendee.external) return attendee
-        const person = directory.get(attendee.email.toLowerCase())
-        if (!person) return attendee
-        return {
-          ...attendee,
-          displayName: attendee.displayName ?? person.name,
-          picture: person.picture,
-        }
-      }),
+      ...person,
+      displayName: person.displayName ?? found.name,
+      picture: found.picture,
     }
-  })
+  }
+
+  return bookings.map((booking) => ({
+    ...booking,
+    organizer: booking.organizer && withPhoto(booking.organizer),
+    attendees: booking.attendees?.map(withPhoto),
+  }))
 }

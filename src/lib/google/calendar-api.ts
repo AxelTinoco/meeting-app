@@ -81,8 +81,8 @@ interface GCalEvent {
   status?: string
   start?: GCalDateTime
   end?: GCalDateTime
-  organizer?: { email?: string }
-  creator?: { email?: string }
+  organizer?: { email?: string; displayName?: string }
+  creator?: { email?: string; displayName?: string }
   attendees?: GCalAttendee[]
   extendedProperties?: {
     private?: Record<string, string>
@@ -123,6 +123,38 @@ function toBookingAttendee(a: GCalAttendee): BookingAttendee {
   }
 }
 
+/**
+ * El organizador como persona pintable.
+ *
+ * Suele venir en `attendees` (Google mete al dueño del evento en su propia lista), pero no
+ * siempre: al crear la reserva solo mandamos la sala y los invitados, así que si Google no
+ * lo agregó hay que sintetizarlo del campo `organizer` del evento. En ese caso la respuesta
+ * es `accepted` sin preguntar: es su junta, no está invitado a ella.
+ *
+ * Devuelve `undefined` cuando la organizadora es la sala (reservas anteriores al cambio de
+ * modelo, ver la nota de `createBooking`): ahí no hay persona a la que ponerle cara.
+ */
+function toOrganizer(
+  all: GCalAttendee[],
+  email: string,
+  roomEmail: string,
+  displayName?: string,
+): BookingAttendee | undefined {
+  if (!email || email.toLowerCase() === roomEmail.toLowerCase()) return undefined
+
+  const entry = all.find(
+    (a) => !a.resource && a.email?.toLowerCase() === email.toLowerCase(),
+  )
+  if (entry) return toBookingAttendee(entry)
+
+  return {
+    email,
+    displayName: displayName || undefined,
+    response: 'accepted',
+    external: isExternal(email),
+  }
+}
+
 function eventToBooking(ev: GCalEvent, fallbackRoomEmail?: string): Booking {
   // Los metadatos van en `shared` para que sobrevivan en la copia del evento que ve la sala
   // (`private` solo existe en la copia del creador). Leemos ambos porque los eventos creados
@@ -156,6 +188,12 @@ function eventToBooking(ev: GCalEvent, fallbackRoomEmail?: string): Booking {
     meetingType: toMeetingType(meta.meetingType),
     attendeeCount: meta.attendeeCount ? Number(meta.attendeeCount) : undefined,
     attendees: attendees.length ? attendees : undefined,
+    organizer: toOrganizer(
+      all,
+      organizerEmail,
+      roomEmail,
+      ev.organizer?.displayName ?? ev.creator?.displayName,
+    ),
     roomResponse: room ? toBookingAttendee(room).response : undefined,
     startTime: ev.start?.dateTime ?? ev.start?.date ?? '',
     endTime: ev.end?.dateTime ?? ev.end?.date ?? '',

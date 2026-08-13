@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { ModalShell } from './ModalShell'
+import { ModalShell, ModalTitle } from './ModalShell'
+import { Field } from './Field'
 import { createRoomFn, updateRoomFn } from '../server/rooms'
 import type { Room } from '../lib/types'
 
@@ -61,9 +62,9 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
     >
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-ink-900">
+          <ModalTitle className="text-lg font-semibold text-ink-900">
             {isEdit ? 'Editar sala' : 'Nueva sala'}
-          </h2>
+          </ModalTitle>
           <p className="text-sm text-ink-500">
             {isEdit ? room.resourceEmail : 'Se agregará al mapa de salas'}
           </p>
@@ -138,7 +139,11 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             </Field>
           </div>
 
-          {error && <p className="alert-error">{error}</p>}
+        {error && (
+          <p role="alert" className="alert-error">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-ghost">
@@ -154,20 +159,5 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
         </div>
       </form>
     </ModalShell>
-  )
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <label className="block">
-      <span className="field-label">{label}</span>
-      {children}
-    </label>
   )
 }

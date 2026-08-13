@@ -3,7 +3,7 @@ import { Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
-import { ModalShell } from './ModalShell'
+import { ModalShell, ModalTitle } from './ModalShell'
 import { BookingModal } from './BookingModal'
 import { RoomFormModal } from './RoomFormModal'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -95,7 +95,9 @@ export function RoomDetailModal({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-ink-100 p-6">
           <div>
-            <h2 className="text-xl font-bold text-ink-900">{room.name}</h2>
+            <ModalTitle className="text-xl font-bold text-ink-900">
+              {room.name}
+            </ModalTitle>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
               {room.capacity != null && (
                 <span className="inline-flex items-center gap-1">
@@ -143,7 +145,7 @@ export function RoomDetailModal({
             <h3 className="text-sm font-semibold text-ink-700">
               Reservas de hoy
             </h3>
-            <span className="text-xs text-ink-400">{roomBookings.length}</span>
+            <span className="text-xs text-ink-500">{roomBookings.length}</span>
           </div>
 
           {roomBookings.length === 0 ? (

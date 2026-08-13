@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { GOOGLE_WORKSPACE_DOMAIN } from '../lib/constants'
 
@@ -24,12 +24,17 @@ function expand(raw: string): string {
 interface AttendeesInputProps {
   value: string[]
   onChange: (next: string[]) => void
+  /** Lo pone `<Field>` al clonar, y va al input de correos: es el control real. */
+  id?: string
 }
 
-export function AttendeesInput({ value, onChange }: AttendeesInputProps) {
+export function AttendeesInput({ value, onChange, id }: AttendeesInputProps) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // La ayuda y el error se describen desde aquí y no desde `<Field>`: son de
+  // este componente y se turnan (ver el render de abajo).
+  const ayudaId = useId()
 
   /** Confirma uno o varios correos. Devuelve true si todos entraron. */
   function commit(raw: string): boolean {
@@ -96,8 +101,11 @@ export function AttendeesInput({ value, onChange }: AttendeesInputProps) {
         ))}
         <input
           ref={inputRef}
+          id={id}
           type="text"
           value={draft}
+          aria-describedby={ayudaId}
+          aria-invalid={error ? true : undefined}
           onChange={(e) => {
             setDraft(e.target.value)
             if (error) setError(null)
@@ -107,14 +115,18 @@ export function AttendeesInput({ value, onChange }: AttendeesInputProps) {
             if (draft.trim() && commit(draft)) setDraft('')
           }}
           placeholder={value.length ? '' : 'ana  ·  cliente@empresa.com'}
-          className="min-w-[10rem] flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-ink-400"
+          className="min-w-[10rem] flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-ink-500"
         />
       </div>
 
+      {/* El mismo id para la ayuda y para el error porque se turnan: así el
+          `aria-describedby` del campo es fijo y siempre apunta a lo que hay. */}
       {error ? (
-        <p className="mt-1 text-xs text-rosa-600">{error}</p>
+        <p id={ayudaId} role="alert" className="mt-1 text-xs text-rosa-600">
+          {error}
+        </p>
       ) : (
-        <p className="mt-1 text-xs text-ink-500">
+        <p id={ayudaId} className="mt-1 text-xs text-ink-500">
           Enter para agregar. Un nombre suelto se completa con @{GOOGLE_WORKSPACE_DOMAIN};
           para alguien de fuera, escribe el correo completo.
         </p>

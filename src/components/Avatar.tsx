@@ -12,6 +12,8 @@ interface AvatarProps {
    * lado; solo se llena cuando el avatar va solo (p. ej. la pila de la agenda).
    */
   alt?: string
+  /** Tooltip. Por defecto el nombre (o el correo); se pasa para añadirle contexto. */
+  title?: string
   className?: string
 }
 
@@ -35,6 +37,7 @@ export function Avatar({
   picture,
   size = 32,
   alt = '',
+  title: titleProp,
   className = '',
 }: AvatarProps) {
   // Una URL de Google puede dejar de servir (foto borrada, sesión sin permiso). Sin esto
@@ -42,7 +45,7 @@ export function Avatar({
   const [failed, setFailed] = useState(false)
 
   const box = { width: size, height: size }
-  const title = name || email
+  const title = titleProp || name || email
 
   if (picture && !failed) {
     return (

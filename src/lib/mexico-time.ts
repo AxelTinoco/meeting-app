@@ -61,6 +61,40 @@ export function mxInputParts(iso: string): { date: string; time: string } {
   return { date: mxISODate(new Date(iso)), time: mxTimeLabel(iso) }
 }
 
+/** Minutos desde medianoche de una hora "HH:MM". */
+export function mxMinutesOfTime(timeHHMM: string): number {
+  const [h, m] = timeHHMM.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+/** Hora "HH:MM" a partir de minutos desde medianoche (acotada al mismo día). */
+export function mxTimeFromMinutes(minutes: number): string {
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, Math.round(minutes)))
+  const hh = String(Math.floor(clamped / 60)).padStart(2, '0')
+  const mm = String(clamped % 60).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+/** Hora actual en CDMX como "HH:MM". */
+export function mxTimeNow(base: Date = new Date()): string {
+  return mxTimeLabel(base.toISOString())
+}
+
+/**
+ * Hora inicial sugerida para una fecha: si es hoy, la siguiente hora en punto
+ * (o la actual si ya estamos justo en punto); si es otro día, el inicio de jornada.
+ * Siempre dentro del horario visible de la grilla.
+ */
+export function mxSuggestedStart(isoDate: string, base: Date = new Date()): string {
+  const openMin = DAY_START_HOUR * 60
+  // Dejamos al menos una hora antes del cierre para que el fin sugerido quepa.
+  const lastMin = (DAY_END_HOUR - 1) * 60
+  if (isoDate !== mxISODate(base)) return mxTimeFromMinutes(openMin)
+  const now = mxMinutesOfTime(mxTimeNow(base))
+  const nextHour = Math.ceil(now / 60) * 60
+  return mxTimeFromMinutes(Math.max(openMin, Math.min(lastMin, nextHour)))
+}
+
 /** Rango [00:00, 24:00) de un día en CDMX. */
 export function mxDayRange(base: Date = new Date()): DateRange {
   const today = mxISODate(base)

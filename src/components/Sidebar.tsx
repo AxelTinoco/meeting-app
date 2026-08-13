@@ -78,7 +78,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
           <p className="truncate text-sm font-semibold text-ink-800">
             {user.name}
           </p>
-          <p className="truncate text-xs text-ink-400">{user.email}</p>
+          <p className="truncate text-xs text-ink-500">{user.email}</p>
         </div>
         {/* Form y no fetch: el logout es POST (un GET lo dispararía cualquier página). */}
         <form method="post" action="/api/auth/logout">
@@ -86,7 +86,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
             type="submit"
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
-            className="flex size-8 items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-ink-200 hover:text-ink-700"
+            className="flex size-8 items-center justify-center rounded-lg text-ink-500 transition-colors hover:bg-ink-200 hover:text-ink-700"
           >
             <LogOut size={16} />
           </button>

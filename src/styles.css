@@ -127,10 +127,23 @@ body {
   background: #fff;
 }
 
-/* Foco visible de marca, consistente en toda la app. */
+/* Foco visible, consistente en toda la app.
+
+   Es un anillo de DOS tonos, y eso no es decoración: un anillo de un solo color
+   siempre tiene un fondo contra el que desaparece. El de marca lo hacía sobre
+   `btn-primary`, que es exactamente el mismo `brand-500` — 1.00:1, invisible
+   justo en los botones que más importan (Reservar, Nueva reserva, Continuar con
+   Google). Ver A-10 en `docs/accesibilidad.md`.
+
+   Con el halo blanco pegado al control y el anillo oscuro por fuera, siempre hay
+   un borde que contrasta: sobre fondo claro se ve el anillo (19.5:1 contra
+   blanco) y sobre fondo de marca se ve el halo (4.84:1 contra brand-500, 7.86:1
+   contra brand-600). El `spread` del halo iguala al `outline-offset` para que no
+   quede aire entre los dos. */
 :focus-visible {
-  outline: 2px solid var(--color-brand-500);
+  outline: 2px solid var(--color-ink-950);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 /* --------------------------------------------------------------------------
@@ -197,11 +210,11 @@ body {
 
 /* Botón de solo icono (cerrar, editar, eliminar en listas). */
 @utility btn-icon {
-  @apply rounded-md p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700;
+  @apply rounded-md p-1.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-700;
 }
 
 @utility btn-icon-danger {
-  @apply rounded-md p-1.5 text-ink-400 transition-colors hover:bg-rosa-50 hover:text-rosa-600;
+  @apply rounded-md p-1.5 text-ink-500 transition-colors hover:bg-rosa-50 hover:text-rosa-600;
 }
 
 /* --- Superficies ---------------------------------------------------------- */
@@ -222,7 +235,9 @@ body {
 }
 
 /* --- Badges de estado -----------------------------------------------------
-   Texto en el paso 700/800 sobre fondo 100 del mismo matiz: todos ≥ 8:1. */
+   Texto en el paso 700/800 sobre fondo 100 del mismo matiz. Medido: de 10.02:1
+   (reservada) a 13.43:1 (aviso); `badge-neutral`, que es el único que no usa un
+   matiz de marca, se queda en 6.89:1. Todos por encima del 4.5:1 de AA. */
 @utility badge {
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
 }

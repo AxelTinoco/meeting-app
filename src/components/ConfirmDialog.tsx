@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { ModalShell } from './ModalShell'
+import { ModalShell, ModalTitle } from './ModalShell'
 
 interface ConfirmDialogProps {
   title: string
@@ -47,11 +47,17 @@ export function ConfirmDialog({
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-rosa-600">
           <AlertTriangle size={20} />
         </span>
-        <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
+        <ModalTitle className="text-lg font-semibold text-ink-900">
+          {title}
+        </ModalTitle>
       </div>
       <p className="text-sm text-ink-600">{message}</p>
 
-      {error && <p className="alert-error mt-3">{error}</p>}
+      {error && (
+        <p role="alert" className="alert-error mt-3">
+          {error}
+        </p>
+      )}
 
       <div className="mt-6 flex justify-end gap-2">
         <button type="button" onClick={onClose} className="btn-ghost">

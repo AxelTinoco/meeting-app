@@ -28,6 +28,19 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
       ? `Próxima ${mxTimeLabel(next.startTime)} · ${next.title}`
       : 'Disponible todo el día'
 
+  // Toda la sala es un solo botón, así que su nombre accesible es lo que haya
+  // dentro concatenado sin separación: "El TallerACTIVARevisión de campaña ·
+  // hasta 13:0020". Se compone a mano para que se lea (A-08). El estado va en
+  // palabras porque en la pantalla lo lleva el color del borde y del punto.
+  const etiqueta = [
+    room.name,
+    style.label.toLowerCase(),
+    caption,
+    room.capacity != null ? `capacidad ${room.capacity}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     // La entrada la lleva el envoltorio en CSS (`tile-enter`, ver styles.css) y no
     // motion: así la sala se pinta con el HTML del servidor en vez de esperar a que
@@ -46,6 +59,7 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
     >
       <motion.button
         type="button"
+        aria-label={etiqueta}
         onClick={() => onSelect(room)}
         // El levantar/hundir lo lleva el resorte, no `transition-all`: así el hover
         // se puede interrumpir a media animación sin que la sala «rebote» de vuelta.
@@ -64,7 +78,7 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
         <span className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2">
           <span className="truncate text-xs text-ink-500">{caption}</span>
           {room.capacity != null && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-ink-400">
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-ink-500">
               <GrndIcon name="conexion" size={12} /> {room.capacity}
             </span>
           )}

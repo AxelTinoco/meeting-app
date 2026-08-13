@@ -97,4 +97,41 @@ describe('buildUpcoming', () => {
     const items = buildUpcoming([PECERA_11], ROOMS, at('20:30'))
     expect(items.every((i) => i.status !== 'free')).toBe(true)
   })
+
+  /*
+   * La pila de caras es lo único que dice quién estuvo en la junta, y `attendees` son
+   * solo los invitados: sin el organizador, apartar la sala sin invitar a nadie dejaba
+   * la tarjeta sin ninguna cara.
+   */
+  it('pone al organizador al frente de la pila, aunque no haya invitados', () => {
+    const solo = booking({
+      eventId: 'solo',
+      startTime: '2026-08-13T09:00:00-06:00',
+      endTime: '2026-08-13T09:30:00-06:00',
+      organizer: { email: 'axel@gerundio.com.mx', response: 'accepted', external: false },
+    })
+    const [item] = buildUpcoming([solo], ROOMS, at('09:15'))
+    expect(item.people).toEqual([
+      { email: 'axel@gerundio.com.mx', response: 'accepted', external: false, isOrganizer: true },
+    ])
+  })
+
+  it('no duplica al organizador si además viene en la lista de invitados', () => {
+    const dup = booking({
+      eventId: 'dup',
+      startTime: '2026-08-13T09:00:00-06:00',
+      endTime: '2026-08-13T09:30:00-06:00',
+      organizer: { email: 'axel@gerundio.com.mx', response: 'accepted', external: false },
+      attendees: [
+        { email: 'AXEL@gerundio.com.mx', response: 'accepted', external: false },
+        { email: 'sofia@gerundio.com.mx', response: 'needsAction', external: false },
+      ],
+    })
+    const [item] = buildUpcoming([dup], ROOMS, at('09:15'))
+    expect(item.people?.map((p) => p.email)).toEqual([
+      'axel@gerundio.com.mx',
+      'sofia@gerundio.com.mx',
+    ])
+    expect(item.people?.filter((p) => p.isOrganizer)).toHaveLength(1)
+  })
 })
