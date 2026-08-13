@@ -5,7 +5,7 @@ import { RoomTile } from './RoomTile'
 import { RoomDetailModal } from './RoomDetailModal'
 import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
-import { springSnappy, staggerContainer } from '../lib/motion'
+import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
 import type { Booking, CurrentUser, Room } from '../lib/types'
 
@@ -50,14 +50,11 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
       )}
 
       <div className="absolute inset-0 p-10">
-        {/* El contenedor no anima nada propio: escalona la entrada de las salas
-            para que el plano se dibuje, en vez de aparecer de golpe. */}
-        <motion.div
-          className="relative h-full w-full"
-          variants={staggerContainer(0.05)}
-          initial="hidden"
-          animate="visible"
-        >
+        {/* El plano es lo primero que tiene que verse, así que su entrada no pasa
+            por motion: cada sala se escalona sola con un `animation-delay` en CSS
+            (ver `tile-enter`). Un contenedor de variantes aquí obligaría a las
+            salas a esperar a la hidratación para hacerse visibles. */}
+        <div className="relative h-full w-full">
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="card-empty px-6 py-8">
@@ -65,17 +62,16 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
               </p>
             </div>
           ) : (
-            <AnimatePresence>
-              {rooms.map((room) => (
-                <RoomTile
-                  key={room.resourceEmail}
-                  view={deriveRoomView(room, bookings, now)}
-                  onSelect={(r) => setSelectedEmail(r.resourceEmail)}
-                />
-              ))}
-            </AnimatePresence>
+            rooms.map((room, i) => (
+              <RoomTile
+                key={room.resourceEmail}
+                view={deriveRoomView(room, bookings, now)}
+                index={i}
+                onSelect={(r) => setSelectedEmail(r.resourceEmail)}
+              />
+            ))
           )}
-        </motion.div>
+        </div>
       </div>
 
       <div className="card absolute bottom-6 right-6 flex flex-col overflow-hidden">

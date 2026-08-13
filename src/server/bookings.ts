@@ -100,22 +100,24 @@ export const listRoomsFn = createServerFn({ method: 'GET' }).handler(async () =>
   return getCalendarService().listRooms()
 })
 
-/** Disponibilidad de todas las salas para hoy (CDMX). */
+/**
+ * Datos del dashboard de hoy (CDMX): salas + reservas del día.
+ *
+ * Aquí se llamaba también a `getAvailability` (freebusy), pero el dashboard nunca usaba
+ * ese resultado: deriva todo de `bookings`. Era un viaje extra a Google —de los lentos,
+ * ver el retraso de freebusy en `assertRoomFree`— bloqueando el loader de la ruta, o sea
+ * retrasando el primer pintado del mapa sin dar nada a cambio.
+ */
 export const getTodayAvailabilityFn = createServerFn({ method: 'GET' }).handler(
   async () => {
     const user = await requireUser()
     const svc = getCalendarService()
-    const rooms = await svc.listRooms()
     const range = mxDayRange()
-    const [availability, bookings] = await Promise.all([
-      svc.getAvailability(
-        rooms.map((r) => r.resourceEmail),
-        range,
-        user.email,
-      ),
+    const [rooms, bookings] = await Promise.all([
+      svc.listRooms(),
       svc.getDayBookings(range, user.email),
     ])
-    return { rooms, range, availability, bookings, user }
+    return { rooms, range, bookings, user }
   },
 )
 

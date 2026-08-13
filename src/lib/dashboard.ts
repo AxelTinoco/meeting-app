@@ -187,5 +187,9 @@ function nextFreeSlot(sorted: Booking[], now: Date): UpcomingItem | null {
 }
 
 function freeItem(start: string, end: string): UpcomingItem {
-  return { id: `free-${start}`, status: 'free', title: 'Sin reuniones', start, end }
+  // El id es fijo a propósito: es la `key` de la tarjeta en el riel y el hueco empieza
+  // "ahora", que cambia en cada tick del reloj. Con un id derivado de `start` la tarjeta
+  // se desmontaba y volvía a montar cada segundo, así que vivía en plena animación de
+  // entrada/salida (parpadeo). Con un id estable solo se actualiza el rango.
+  return { id: 'free-slot', status: 'free', title: 'Sin reuniones', start, end }
 }

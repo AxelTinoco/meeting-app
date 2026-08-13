@@ -62,12 +62,10 @@ export function staggerContainer(stagger = 0.04, delay = 0): Variants {
   }
 }
 
-/** Sala en el mapa: aparece desde su propio centro, como si se posara en el plano. */
-export const tileVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.94 },
-  visible: { opacity: 1, scale: 1, transition: springSurface },
-  exit: { opacity: 0, scale: 0.94, transition: exit },
-}
+/* La entrada de las salas del mapa NO vive aquí: está en `tile-enter` (styles.css).
+   Motion emite su estado `initial` en el HTML del servidor, así que animar ahí la
+   primera pintada dejaba el plano en blanco hasta que hidrataba el bundle. Es la
+   única excepción a "el movimiento vive en motion", y es deliberada. */
 
 /**
  * Tarjeta de la agenda: entra desde la derecha, el borde del que cuelga el riel.
