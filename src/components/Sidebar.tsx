@@ -1,5 +1,6 @@
 import { LogOut } from 'lucide-react'
 import { motion } from 'motion/react'
+import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
 import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
@@ -67,18 +68,12 @@ export function Sidebar({ user }: { user: SessionUser }) {
       </nav>
 
       <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-ink-200/60">
-        {user.picture ? (
-          <img
-            src={user.picture}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="size-9 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex size-9 items-center justify-center rounded-full bg-ink-300 text-sm font-semibold text-ink-600">
-            {initials(user.name)}
-          </div>
-        )}
+        <Avatar
+          email={user.email}
+          name={user.name}
+          picture={user.picture}
+          size={36}
+        />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-sm font-semibold text-ink-800">
             {user.name}
@@ -99,13 +94,4 @@ export function Sidebar({ user }: { user: SessionUser }) {
       </div>
     </aside>
   )
-}
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('')
 }
