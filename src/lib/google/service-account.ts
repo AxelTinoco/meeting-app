@@ -16,6 +16,12 @@ interface TokenCacheEntry {
 // reiniciarse entre invocaciones del worker, pero ahorra intercambios dentro de una misma.
 const tokenCache = new Map<string, TokenCacheEntry>()
 
+// Intercambios en vuelo, con la MISMA clave que el cache. El dashboard dispara varias
+// llamadas a Calendar en paralelo (una por sala + la del usuario); en frío todas fallan
+// el cache a la vez y, sin esto, cada una firmaba su JWT y pedía su propio token. Ahora
+// comparten un solo viaje a Google y el resto solo espera.
+const inflight = new Map<string, Promise<string>>()
+
 function b64url(bytes: Uint8Array): string {
   let bin = ''
   for (const byte of bytes) bin += String.fromCharCode(byte)
@@ -75,6 +81,24 @@ export async function getAccessToken(
     return cached.token
   }
 
+  const pending = inflight.get(cacheKey)
+  if (pending) return pending
+
+  // El `finally` corre también si el intercambio falla: si no, un error dejaría la
+  // entrada pegada y todas las peticiones siguientes heredarían el mismo fallo.
+  const exchange = exchangeJwtForToken(cacheKey, subject, scopes, now).finally(() => {
+    inflight.delete(cacheKey)
+  })
+  inflight.set(cacheKey, exchange)
+  return exchange
+}
+
+async function exchangeJwtForToken(
+  cacheKey: string,
+  subject: string,
+  scopes: string[],
+  now: number,
+): Promise<string> {
   const sa = getGoogleServiceAccount()
   const jwt = await signJwt(
     {

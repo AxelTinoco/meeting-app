@@ -260,3 +260,38 @@ body {
 @utility alert-error {
   @apply rounded-md bg-rosa-50 px-3 py-2 text-sm text-rosa-700;
 }
+
+/* --- Movimiento que NO puede depender de JS -------------------------------
+   Regla general de la app: el movimiento vive en motion (ver `src/lib/motion.ts`).
+   La excepción es la primera pintada del contenido principal.
+
+   Motion emite el estado `initial` en el HTML del servidor, así que una sala con
+   `initial="hidden"` llega al navegador como `opacity: 0` y solo se hace visible
+   cuando el bundle descarga e hidrata. Medido: el HTML con las salas ya está ahí
+   a los ~550 ms, pero el plano se veía en blanco hasta la hidratación. En CSS la
+   animación arranca con la pintura del HTML y no espera a nadie.
+   -------------------------------------------------------------------------- */
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* `both` mantiene el estado inicial durante el `animation-delay` (el escalonado
+   lo pone cada sala en línea) y el final al terminar. */
+@utility tile-enter {
+  animation: tile-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Equivalente en CSS de `<MotionConfig reducedMotion="user">`: sin animación la
+   sala se queda en su estado natural, visible. */
+@media (prefers-reduced-motion: reduce) {
+  .tile-enter {
+    animation: none;
+  }
+}
