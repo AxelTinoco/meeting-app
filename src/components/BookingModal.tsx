@@ -96,7 +96,7 @@ export function BookingModal({
     <ModalShell
       onClose={onClose}
       overlayClassName="z-50"
-      panelClassName="max-w-md p-6"
+      panelClassName="max-w-md overflow-y-auto p-5 sm:p-6"
     >
       <div className="mb-4 flex items-start justify-between">
         <div>
@@ -174,6 +174,8 @@ export function BookingModal({
           />
         </Field>
 
+        {/* Solo las horas se reparten en dos columnas: son los dos únicos
+            campos que se leen como un par y que caben estrechos. */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Inicio">
             <input
@@ -184,68 +186,44 @@ export function BookingModal({
               className="input"
             />
           </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Inicio">
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="input"
-              />
-            </Field>
-            <Field label="Fin">
-              <input
-                type="time"
-                required
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="input"
-              />
-            </Field>
-          </div>
-
-          <Field label="Invitar a">
-            <AttendeesInput value={attendees} onChange={setAttendees} />
-          </Field>
-
-          <Field
-            label={`Personas en la sala${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
-          >
+          <Field label="Fin">
             <input
-              type="number"
-              min={1}
-              value={attendeeCount}
-              onChange={(e) => setAttendeeCount(e.target.value)}
-              placeholder={String(attendees.length + 1)}
+              type="time"
+              required
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
               className="input"
             />
-            {overCapacity ? (
-              <p className="mt-1 text-xs text-amarillo-700">
-                {headcount} personas exceden la capacidad de la sala (informativo).
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-ink-500">
-                Opcional. Úsalo si van más personas de las que invitaste por correo.
-              </p>
-            )}
           </Field>
         </div>
 
+        <Field label="Invitar a">
+          <AttendeesInput value={attendees} onChange={setAttendees} />
+        </Field>
+
         <Field
-          label={`Asistentes${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
+          label={`Personas en la sala${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
         >
           <input
             type="number"
             min={1}
             value={attendeeCount}
             onChange={(e) => setAttendeeCount(e.target.value)}
+            // El placeholder enseña el cálculo implícito (los invitados más
+            // quien reserva). Vacío NO manda ese número —`attendeeCount` se va
+            // como `undefined`—; solo es el suelo del aviso de capacidad.
+            placeholder={String(attendees.length + 1)}
             className="input"
           />
-          {overCapacity && (
-            <p className="mt-1 text-xs text-amarillo-600">
-              Excede la capacidad de la sala (informativo).
+          {overCapacity ? (
+            <p className="mt-1 text-xs text-amarillo-700">
+              {headcount} personas exceden la capacidad de la sala
+              (informativo).
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-ink-500">
+              Opcional. Úsalo si van más personas de las que invitaste por
+              correo.
             </p>
           )}
         </Field>

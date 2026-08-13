@@ -90,12 +90,14 @@ export function RoomDetailModal({
       <ModalShell
         onClose={onClose}
         overlayClassName="z-50"
-        panelClassName="flex max-h-[85vh] max-w-lg flex-col"
+        panelClassName="flex max-w-lg flex-col sm:max-h-[85dvh]"
       >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-ink-100 p-6">
-          <div>
-            <h2 className="text-xl font-bold text-ink-900">{room.name}</h2>
+        <div className="flex items-start justify-between gap-2 border-b border-ink-100 p-5 sm:p-6">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold text-ink-900 sm:text-xl">
+              {room.name}
+            </h2>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
               {room.capacity != null && (
                 <span className="inline-flex items-center gap-1">
@@ -110,35 +112,35 @@ export function RoomDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="btn-icon"
+            className="btn-icon shrink-0"
             aria-label="Cerrar"
           >
             <X size={18} />
           </button>
         </div>
 
-          {/* Acciones de la sala: solo admins */}
-          {isAdmin && (
-            <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
-              <button
-                type="button"
-                onClick={() => setEditingRoom(true)}
-                className="btn-secondary px-3 py-1.5"
-              >
-                <GrndIcon name="transformando" size={14} /> Editar sala
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeletingRoom(true)}
-                className="btn-danger-outline px-3 py-1.5"
-              >
-                <Trash2 size={14} /> Eliminar sala
-              </button>
-            </div>
-          )}
+        {/* Acciones de la sala: solo admins */}
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-ink-100 px-5 py-3 sm:px-6">
+            <button
+              type="button"
+              onClick={() => setEditingRoom(true)}
+              className="btn-secondary px-3 py-1.5"
+            >
+              <GrndIcon name="transformando" size={14} /> Editar sala
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeletingRoom(true)}
+              className="btn-danger-outline px-3 py-1.5"
+            >
+              <Trash2 size={14} /> Eliminar sala
+            </button>
+          </div>
+        )}
 
         {/* Lista de reservas de hoy */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink-700">
               Reservas de hoy
@@ -169,7 +171,10 @@ export function RoomDetailModal({
                     className="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      {/* Con el ancho de un teléfono el título y sus etiquetas
+                          no caben en una línea: se reparten en varias en vez
+                          de empujar los botones de la derecha fuera. */}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <p className="truncate text-sm font-semibold text-ink-900">
                           {b.title}
                         </p>

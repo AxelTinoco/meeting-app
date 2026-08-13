@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { getTodayAvailabilityFn } from '../server/bookings'
+import { AppHeader } from '../components/AppHeader'
+import { NavDrawer } from '../components/NavDrawer'
 import { Sidebar } from '../components/Sidebar'
-import { RoomMap } from '../components/RoomMap'
+import { RoomsPanel } from '../components/RoomsPanel'
+import { AgendaSheet } from '../components/AgendaSheet'
 import { UpcomingRail } from '../components/UpcomingRail'
 import { WelcomeDrop } from '../components/WelcomeDrop'
 import { buildUpcoming } from '../lib/dashboard'
@@ -33,6 +36,10 @@ function Dashboard() {
   const [entrando] = useState(bienvenida === WELCOME_VALUE)
   const navigate = useNavigate()
 
+  // Solo existe por debajo de `md`; de ahí en adelante la navegación está
+  // siempre a la vista y el drawer ni se monta.
+  const [navOpen, setNavOpen] = useState(false)
+
   useEffect(() => {
     if (!bienvenida) return
     navigate({ to: '/', search: {}, replace: true })
@@ -47,16 +54,43 @@ function Dashboard() {
   const upcoming = buildUpcoming(bookings, rooms, at)
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white text-ink-900">
-      <Sidebar user={user} />
-      <RoomMap
+    // `h-dvh` y no `h-screen`: en los navegadores de móvil `100vh` cuenta la
+    // barra de direcciones como si no existiera, así que la hoja de agenda
+    // quedaba cortada por debajo del borde de la pantalla.
+    //
+    // La columna se vuelve fila en `md`, que es donde entra el riel de iconos;
+    // el tercer panel (la agenda como columna) solo cabe a partir de `lg`.
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-white text-ink-900 md:flex-row">
+      <AppHeader user={user} onOpenNav={() => setNavOpen(true)} />
+
+      {/* Dos formas del mismo sidebar, alternadas por CSS para que las dos
+          salgan ya resueltas en el HTML del servidor. */}
+      <Sidebar
+        user={user}
+        variant="icons"
+        scope="rail"
+        className="hidden border-r md:flex lg:hidden"
+      />
+      <Sidebar
+        user={user}
+        variant="full"
+        scope="desktop"
+        className="hidden border-r lg:flex"
+      />
+
+      <RoomsPanel
         rooms={rooms}
         bookings={bookings}
         now={at}
         user={user}
         onChanged={refresh}
       />
-      <UpcomingRail items={upcoming} now={now} />
+
+      <UpcomingRail items={upcoming} now={now} className="hidden lg:flex" />
+      <AgendaSheet items={upcoming} now={now} />
+
+      <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} user={user} />
+
       {entrando && <WelcomeDrop />}
     </div>
   )

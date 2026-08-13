@@ -41,7 +41,7 @@ export function ConfirmDialog({
     <ModalShell
       onClose={onClose}
       overlayClassName="z-[60]"
-      panelClassName="max-w-sm p-6"
+      panelClassName="max-w-sm overflow-y-auto p-5 sm:p-6"
     >
       <div className="mb-3 flex items-center gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-rosa-600">

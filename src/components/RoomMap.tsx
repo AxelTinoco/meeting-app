@@ -1,34 +1,35 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { GrndIcon } from './GrndIcon'
 import { RoomTile } from './RoomTile'
-import { RoomDetailModal } from './RoomDetailModal'
-import { RoomFormModal } from './RoomFormModal'
 import { deriveRoomView } from '../lib/dashboard'
 import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
-import type { Booking, CurrentUser, Room } from '../lib/types'
+import type { Booking, Room } from '../lib/types'
 
 interface RoomMapProps {
   rooms: Room[]
   bookings: Booking[]
   now: Date
-  user: CurrentUser
-  onChanged: () => void
+  onSelect: (room: Room) => void
+  className?: string
 }
 
-/** Lienzo espacial con las salas colocadas según su posición en el mapa. */
-export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps) {
-  const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
-  const [creatingRoom, setCreatingRoom] = useState(false)
-  const isAdmin = user.role === 'admin'
-
-  // Se re-deriva de `rooms` para reflejar ediciones y cerrarse si la sala se eliminó.
-  const selectedRoom =
-    rooms.find((r) => r.resourceEmail === selectedEmail) ?? null
-
+/**
+ * Lienzo espacial con las salas colocadas según su posición en el mapa.
+ *
+ * De `md` para arriba. La selección y los modales viven en `RoomsPanel`, que es
+ * quien decide si en este ancho se enseña el plano o la lista: si el estado
+ * viviera aquí, cambiar de tamaño de ventana cerraría el panel de la sala.
+ */
+export function RoomMap({
+  rooms,
+  bookings,
+  now,
+  onSelect,
+  className = '',
+}: RoomMapProps) {
   return (
-    <div className="relative flex-1 overflow-hidden bg-white">
+    <div className={`relative overflow-hidden bg-white ${className}`}>
       {/* Cuadrícula de fondo sutil */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.4]"
@@ -39,17 +40,9 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
         }}
       />
 
-      {isAdmin && (
-        <button
-          type="button"
-          onClick={() => setCreatingRoom(true)}
-          className="btn-primary absolute right-6 top-6 z-10"
-        >
-          <GrndIcon name="sumando" size={16} /> Nueva sala
-        </button>
-      )}
-
-      <div className="absolute inset-0 p-10">
+      {/* El padding se encoge con la pantalla: en tablet, 40px por lado se comen
+          casi una sexta parte del ancho útil del plano. */}
+      <div className="absolute inset-0 p-6 lg:p-10">
         {/* El plano es lo primero que tiene que verse, así que su entrada no pasa
             por motion: cada sala se escalona sola con un `animation-delay` en CSS
             (ver `tile-enter`). Un contenedor de variantes aquí obligaría a las
@@ -57,9 +50,7 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
         <div className="relative h-full w-full">
           {rooms.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="card-empty px-6 py-8">
-                No hay salas configuradas.
-              </p>
+              <p className="card-empty px-6 py-8">No hay salas configuradas.</p>
             </div>
           ) : (
             rooms.map((room, i) => (
@@ -67,38 +58,20 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
                 key={room.resourceEmail}
                 view={deriveRoomView(room, bookings, now)}
                 index={i}
-                onSelect={(r) => setSelectedEmail(r.resourceEmail)}
+                onSelect={onSelect}
               />
             ))
           )}
         </div>
       </div>
 
-      <div className="card absolute bottom-6 right-6 flex flex-col overflow-hidden">
+      {/* Sobre el hoja de agenda en tablet: `bottom` sube lo que mide su parte
+          asomada para no quedar debajo. */}
+      <div className="card absolute bottom-[calc(var(--sheet-peek)+1rem)] right-4 flex flex-col overflow-hidden lg:bottom-6 lg:right-6">
         <ZoomButton icon="sumando" label="Acercar" />
         <ZoomButton icon="restando" label="Alejar" />
         <ZoomButton icon="enfocando" label="Centrar" />
       </div>
-
-      {selectedRoom && (
-        <RoomDetailModal
-          room={selectedRoom}
-          bookings={bookings}
-          user={user}
-          onClose={() => setSelectedEmail(null)}
-          onChanged={onChanged}
-        />
-      )}
-
-      <AnimatePresence>
-        {creatingRoom && (
-          <RoomFormModal
-            key="room-create"
-            onClose={() => setCreatingRoom(false)}
-            onSaved={onChanged}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }

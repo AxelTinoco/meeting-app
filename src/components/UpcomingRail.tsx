@@ -22,38 +22,84 @@ interface UpcomingRailProps {
    * una discrepancia de hidratación en cada carga.
    */
   now: Date | null
+  /** Clases de visibilidad por breakpoint; el layout las decide desde fuera. */
+  className?: string
 }
 
-export function UpcomingRail({ items, now }: UpcomingRailProps) {
+/**
+ * La agenda como columna fija. A partir de `lg`: por debajo, 320px de riel no
+ * caben junto al plano y la agenda pasa a `AgendaSheet`, que reutiliza las
+ * mismas piezas de aquí.
+ */
+export function UpcomingRail({
+  items,
+  now,
+  className = '',
+}: UpcomingRailProps) {
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-ink-200 bg-white px-6 py-7">
-      <Clock now={now} />
+    <aside
+      className={`w-72 shrink-0 flex-col border-l border-ink-200 bg-white px-5 py-6 xl:w-80 xl:px-6 xl:py-7 ${className}`}
+    >
+      <AgendaClock now={now} />
 
-      <div className="mb-4 mt-8 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-ink-900">Agenda de hoy</h2>
-        <MoreHorizontal size={18} className="text-ink-400" />
-      </div>
+      <AgendaHeading className="mb-4 mt-8" />
 
-      {/* La agenda se recalcula cada minuto (useNow): las tarjetas cambian de
-          estado y entran/salen solas, así que la lista anima presencia y no
-          solo la carga inicial. */}
-      <motion.div
-        className="flex flex-col gap-3 overflow-y-auto"
-        variants={staggerContainer(0.06, 0.1)}
-        initial="hidden"
-        animate="visible"
-      >
-        {items.length === 0 ? (
-          <p className="card-empty px-4 py-6">No hay reuniones hoy.</p>
-        ) : (
-          <AnimatePresence>
-            {items.map((item) => (
-              <UpcomingCard key={item.id} item={item} />
-            ))}
-          </AnimatePresence>
-        )}
-      </motion.div>
+      <AgendaList items={items} className="min-h-0 flex-1" />
     </aside>
+  )
+}
+
+export function AgendaHeading({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex shrink-0 items-center justify-between ${className}`}>
+      <h2 className="text-lg font-bold text-ink-900">Agenda de hoy</h2>
+      <MoreHorizontal size={18} className="text-ink-400" />
+    </div>
+  )
+}
+
+/**
+ * Las tarjetas del día. La agenda se recalcula cada minuto (useNow): cambian de
+ * estado y entran/salen solas, así que la lista anima presencia y no solo la
+ * carga inicial.
+ */
+export function AgendaList({
+  items,
+  className = '',
+}: {
+  items: UpcomingItem[]
+  className?: string
+}) {
+  return (
+    <motion.div
+      className={`flex flex-col gap-3 overflow-y-auto ${className}`}
+      variants={staggerContainer(0.06, 0.1)}
+      initial="hidden"
+      animate="visible"
+    >
+      {items.length === 0 ? (
+        <p className="card-empty px-4 py-6">No hay reuniones hoy.</p>
+      ) : (
+        <AnimatePresence>
+          {items.map((item) => (
+            <UpcomingCard key={item.id} item={item} />
+          ))}
+        </AnimatePresence>
+      )}
+    </motion.div>
+  )
+}
+
+/**
+ * La reunión que resume el día de un vistazo: la que está en curso y, si no hay
+ * ninguna, la siguiente. Es lo que asoma la hoja de agenda cuando está cerrada,
+ * el único hueco donde solo cabe una línea.
+ */
+export function highlightItem(items: UpcomingItem[]): UpcomingItem | null {
+  return (
+    items.find((i) => i.status === 'active') ??
+    items.find((i) => i.status === 'incoming') ??
+    null
   )
 }
 
@@ -83,15 +129,34 @@ function clockParts(now: Date) {
   }
 }
 
-function Clock({ now }: { now: Date | null }) {
+/**
+ * `compact` es la versión de la hoja de agenda en móvil: ahí el reloj comparte
+ * una sola línea con la próxima reunión, así que baja de tamaño y la fecha se
+ * queda en el renglón de abajo.
+ */
+export function AgendaClock({
+  now,
+  compact = false,
+}: {
+  now: Date | null
+  compact?: boolean
+}) {
   const date = now ? DATE_FMT.format(now).toUpperCase() : ''
 
   return (
-    <div suppressHydrationWarning>
-      <p className="flex items-end text-5xl font-extrabold leading-none tracking-tight text-ink-900 tabular-nums">
-        {now ? <ClockDigits {...clockParts(now)} /> : '––:––'}
+    <div className="shrink-0 text-left" suppressHydrationWarning>
+      <p
+        className={`flex items-end font-extrabold leading-none tracking-tight text-ink-900 tabular-nums ${
+          compact ? 'text-2xl' : 'text-4xl xl:text-5xl'
+        }`}
+      >
+        {now ? <ClockDigits {...clockParts(now)} compact={compact} /> : '––:––'}
       </p>
-      <p className="mt-2 text-xs font-semibold tracking-widest text-ink-400">
+      <p
+        className={`font-semibold tracking-widest text-ink-400 ${
+          compact ? 'mt-1 text-[10px]' : 'mt-2 text-xs'
+        }`}
+      >
         {date || ' '}
       </p>
     </div>
@@ -102,7 +167,8 @@ function ClockDigits({
   hour,
   minute,
   dayPeriod,
-}: ReturnType<typeof clockParts>) {
+  compact,
+}: ReturnType<typeof clockParts> & { compact: boolean }) {
   return (
     <>
       <RollingNumber value={hour} />
@@ -113,7 +179,10 @@ function ClockDigits({
       {dayPeriod && (
         // `layout` para que acompanie el desplazamiento cuando la hora pasa de
         // una cifra a dos (9 -> 10) en vez de saltar a su nueva posicion.
-        <motion.span layout className="pb-0.5 pl-1.5 text-lg text-ink-400">
+        <motion.span
+          layout
+          className={`pb-0.5 pl-1.5 text-ink-400 ${compact ? 'text-xs' : 'text-lg'}`}
+        >
           {dayPeriod}
         </motion.span>
       )}

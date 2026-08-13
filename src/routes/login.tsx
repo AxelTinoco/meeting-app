@@ -43,13 +43,16 @@ function LoginPage() {
   return (
     // `bg-brand-950` debajo del canvas: es el color al que muere el degradado, así
     // que ni el primer frame ni un WebGL caído enseñan blanco.
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-950 px-6">
+    // `min-h-dvh`: con `100vh` la tarjeta queda centrada respecto a una ventana
+    // más alta que la visible y en móvil se va por debajo de la barra del
+    // navegador.
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-brand-950 px-4 py-8 sm:px-6">
       <LiquidBackground
         variant={variant}
         speed={variant === 'humo' ? 1 : 0.85}
       />
 
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/20 bg-white/95 px-8 py-10 text-center shadow-[0_28px_80px_-24px_rgba(2,0,42,0.85)] backdrop-blur-md">
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/20 bg-white/95 px-6 py-8 text-center shadow-[0_28px_80px_-24px_rgba(2,0,42,0.85)] backdrop-blur-md sm:px-8 sm:py-10">
         <div className="mx-auto mb-6 flex size-14 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-sm">
           <GrndIcon name="ideas" size={28} />
         </div>
@@ -57,7 +60,10 @@ function LoginPage() {
         <h1 className="text-xl font-bold text-ink-900">Gerundio · Salas</h1>
         <p className="mt-2 text-sm text-ink-500">
           Reserva de salas de junta. Entra con tu cuenta{' '}
-          <span className="font-semibold text-ink-700">@{GOOGLE_WORKSPACE_DOMAIN}</span>.
+          <span className="font-semibold text-ink-700">
+            @{GOOGLE_WORKSPACE_DOMAIN}
+          </span>
+          .
         </p>
 
         {error && (

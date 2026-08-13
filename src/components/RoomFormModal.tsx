@@ -57,7 +57,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
     <ModalShell
       onClose={onClose}
       overlayClassName="z-50"
-      panelClassName="max-w-md p-6"
+      panelClassName="max-w-md overflow-y-auto p-5 sm:p-6"
     >
       <div className="mb-4 flex items-start justify-between">
         <div>
@@ -100,12 +100,14 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
           />
         </Field>
 
+        {/* Los ejemplos son los valores reales del edificio (ver
+            `rooms.config.ts`): así se ve de un vistazo qué formato se espera. */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Edificio">
             <input
               value={building}
               onChange={(e) => setBuilding(e.target.value)}
-              placeholder="Ej. Oficina CDMX"
+              placeholder="Ej. Gerundio-HQ"
               className="input"
             />
           </Field>
@@ -113,32 +115,13 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             <input
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
-              placeholder="Ej. Piso 3"
+              placeholder="Ej. Piso 4"
               className="input"
             />
           </Field>
         </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Edificio">
-              <input
-                value={building}
-                onChange={(e) => setBuilding(e.target.value)}
-                placeholder="Ej. Gerundio-HQ"
-                className="input"
-              />
-            </Field>
-            <Field label="Piso">
-              <input
-                value={floor}
-                onChange={(e) => setFloor(e.target.value)}
-                placeholder="Ej. Piso 4"
-                className="input"
-              />
-            </Field>
-          </div>
-
-          {error && <p className="alert-error">{error}</p>}
+        {error && <p className="alert-error">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-ghost">
