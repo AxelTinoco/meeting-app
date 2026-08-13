@@ -117,7 +117,11 @@ export const getTodayAvailabilityFn = createServerFn({ method: 'GET' }).handler(
       svc.listRooms(),
       svc.getDayBookings(range, user.email),
     ])
-    return { rooms, range, bookings, user }
+    // `serverNow` viaja con los datos para que el HTML del servidor ya salga con los
+    // estados buenos ("ACTIVA", "En curso"). Sin él, el primer pintado tenía que
+    // suponer un instante y marcaba TODO como "Próxima"/"RESERVADA" hasta que el
+    // reloj del cliente arrancaba: nunca se veía una sala en curso al entrar.
+    return { rooms, range, bookings, user, serverNow: new Date().toISOString() }
   },
 )
 

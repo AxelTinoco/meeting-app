@@ -288,10 +288,184 @@ body {
   animation: tile-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* --- La gota: entrada de sesión -------------------------------------------
+   Se ve una sola vez, al volver del login. Cierra el salto entre dos pantallas
+   que no se parecen en nada: el login es azul profundo y el tablero es blanco.
+   En vez de un corte seco, la pantalla llega todavía azul, cae una gota de luz
+   al centro y el impacto abre el tablero desde ahí.
+
+   Está en CSS por lo mismo que `tile-enter`, y aquí importa aún más: el velo
+   tiene que existir en el primer frame o no tapa nada.
+
+   Dos concesiones deliberadas a las reglas de `motion.ts`:
+     · Dura ~1 s, no los ~300 ms del resto de la app. Es una transición de
+       sesión, no una micro-interacción: se paga una vez al entrar.
+     · El hueco anima `mask-image` — un repintado por frame, no una capa que
+       mueve el compositor. La alternativa compositable (un círculo claro que
+       crece por encima) TAPA el tablero en vez de descubrirlo, que es justo lo
+       contrario de lo que se quiere contar.
+
+   Si el navegador no entiende `@property`, la máscara queda inválida y el velo
+   nunca abre hueco: por eso `gota-abre` también lo desvanece al final. Peor
+   transición, misma app.
+   -------------------------------------------------------------------------- */
+
+/* Registrar el radio del hueco es lo que lo hace interpolable: una custom
+   property sin `@property` salta de 0% a 108% en un solo frame. */
+@property --gota-hueco {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+@keyframes gota-cae {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 44vh)) scale(0.7, 1.45);
+    /* Gravedad: acelera hasta el suelo. Va dentro del keyframe porque la caída
+       y el aplaste necesitan curvas opuestas. */
+    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.4);
+  }
+  14% {
+    opacity: 1;
+  }
+  /* Contacto: la gota llega estirada por la velocidad. */
+  38% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.95, 1.18);
+    animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  /* Aplaste contra el suelo. */
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -46%) scale(1.85, 0.4);
+  }
+  /* Se deshace en el propio impacto: a partir de aquí manda el hueco. */
+  62%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(2.8, 0.18);
+  }
+}
+
+@keyframes gota-onda {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.06);
+  }
+  10% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* El hueco espera al impacto (40% ≈ 400 ms) y entonces se abre de golpe y
+   frena. El desvanecido final del 92% en adelante es el plan B descrito arriba:
+   sin `@property` no hay hueco, pero el velo se va igual. */
+@keyframes gota-abre {
+  0%,
+  40% {
+    --gota-hueco: 0%;
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    --gota-hueco: 108%;
+    opacity: 0;
+  }
+}
+
+@utility welcome-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 70; /* por encima de los modales (60): esto tapa la app entera */
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@utility welcome-veil {
+  position: absolute;
+  inset: 0;
+  /* El mismo degradado que el respaldo del fondo del login (LiquidBackground):
+     la pantalla que se abre es, literalmente, la que el usuario venía viendo. */
+  background: radial-gradient(
+    120% 100% at 30% 20%,
+    var(--color-brand-800) 0%,
+    var(--color-brand-900) 45%,
+    var(--color-brand-950) 100%
+  );
+  /* El borde del hueco lleva 2% de difuminado: a pantalla completa un corte
+     duro se ve dentado. */
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 46%,
+    transparent var(--gota-hueco),
+    #000 calc(var(--gota-hueco) + 2%)
+  );
+  mask-image: radial-gradient(
+    circle at 50% 46%,
+    transparent var(--gota-hueco),
+    #000 calc(var(--gota-hueco) + 2%)
+  );
+  animation: gota-abre 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Punto de impacto, sin tamaño: los hijos se centran en él con translate(-50%,-50%).
+   46% y no 50% es el centro óptico — el geométrico se lee bajo. */
+@utility welcome-point {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+}
+
+@utility welcome-drop {
+  position: absolute;
+  width: 20px;
+  height: 24px;
+  /* Radios distintos arriba y abajo: una gota tiene la cabeza más redonda. */
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+  background: radial-gradient(
+    circle at 50% 34%,
+    #fff 0%,
+    var(--color-cielo-200) 42%,
+    var(--color-brand-500) 100%
+  );
+  box-shadow: 0 0 26px 6px color-mix(in oklab, var(--color-brand-400) 55%, transparent);
+  animation: gota-cae 1s linear both;
+}
+
+@utility welcome-ring {
+  position: absolute;
+  width: 44vmax;
+  height: 44vmax;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in oklab, var(--color-cielo-200) 65%, transparent);
+  animation: gota-onda 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+/* Segunda onda, más lenta y más tenue: da espesor al salpicón. */
+@utility welcome-ring-late {
+  position: absolute;
+  width: 62vmax;
+  height: 62vmax;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--color-brand-200) 45%, transparent);
+  animation: gota-onda 0.66s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+
 /* Equivalente en CSS de `<MotionConfig reducedMotion="user">`: sin animación la
-   sala se queda en su estado natural, visible. */
+   sala se queda en su estado natural, visible, y la bienvenida no llega a
+   existir (una gota "sin movimiento" sería un velo opaco y punto). */
 @media (prefers-reduced-motion: reduce) {
   .tile-enter {
     animation: none;
+  }
+
+  .welcome-stage {
+    display: none;
   }
 }

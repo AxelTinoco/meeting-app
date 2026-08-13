@@ -12,7 +12,7 @@ import type { Booking, CurrentUser, Room } from '../lib/types'
 interface RoomMapProps {
   rooms: Room[]
   bookings: Booking[]
-  now: Date | null
+  now: Date
   user: CurrentUser
   onChanged: () => void
 }

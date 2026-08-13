@@ -61,25 +61,23 @@ function isActive(b: Booking, nowMs: number): boolean {
   return Date.parse(b.startTime) <= nowMs && nowMs < Date.parse(b.endTime)
 }
 
+/**
+ * Orden cronológico. Por instante y no por texto, por lo mismo que `isActive`: la
+ * misma reunión vuelve de Google con offsets distintos según de qué calendario se
+ * lea (la copia de la sala trae el huso del recurso, la del organizador el suyo),
+ * y como texto "…T10:00:00-07:00" va DESPUÉS de "…T11:00:00-06:00" aunque sean el
+ * mismo momento. Ordenar por cadena barajaba la agenda y hacía que una sala
+ * anunciara como "Próxima" una reunión que no era la siguiente.
+ */
+function byStart(a: Booking, b: Booking): number {
+  return Date.parse(a.startTime) - Date.parse(b.startTime)
+}
+
 /** Deriva el estado de una sala a partir de sus reservas de hoy y el instante actual. */
-export function deriveRoomView(
-  room: Room,
-  bookings: Booking[],
-  now: Date | null,
-): RoomView {
+export function deriveRoomView(room: Room, bookings: Booking[], now: Date): RoomView {
   const mine = bookings
     .filter((b) => b.roomEmail === room.resourceEmail)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-
-  if (now == null) {
-    // Pre-hidratación: estado estable sin depender del reloj del cliente.
-    return {
-      room,
-      status: mine.length > 0 ? 'reserved' : 'free',
-      next: mine[0],
-      todayCount: mine.length,
-    }
-  }
+    .sort(byStart)
 
   const nowMs = now.getTime()
   const current = mine.find((b) => isActive(b, nowMs))
@@ -113,22 +111,9 @@ const ROOM_NAME = (rooms: Room[], email: string) =>
 export function buildUpcoming(
   bookings: Booking[],
   rooms: Room[],
-  now: Date | null,
+  now: Date,
 ): UpcomingItem[] {
-  const sorted = [...bookings].sort((a, b) => a.startTime.localeCompare(b.startTime))
-
-  if (now == null) {
-    // Pre-hidratación: agenda estable sin depender del reloj del cliente.
-    return sorted.map((b) => ({
-      id: b.eventId,
-      status: 'incoming' as const,
-      title: b.title,
-      roomName: ROOM_NAME(rooms, b.roomEmail),
-      start: b.startTime,
-      end: b.endTime,
-      attendees: b.attendees,
-    }))
-  }
+  const sorted = [...bookings].sort(byStart)
 
   const nowMs = now.getTime()
   const items: UpcomingItem[] = sorted.map((b) => ({
@@ -163,9 +148,8 @@ function nextFreeSlot(sorted: Booking[], now: Date): UpcomingItem | null {
   // Fusiona intervalos ocupados y busca el primer gap después de ahora.
   let cursorIso = now.toISOString()
   let cursorMs = nowMs
-  const future = sorted
-    .filter((b) => Date.parse(b.endTime) > nowMs)
-    .sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime))
+  // `sorted` ya viene en orden cronológico real (byStart); aquí solo se descarta lo pasado.
+  const future = sorted.filter((b) => Date.parse(b.endTime) > nowMs)
 
   for (const b of future) {
     const bStartMs = Date.parse(b.startTime)
