@@ -3,6 +3,7 @@ import { GrndIcon } from './GrndIcon'
 import { AvailabilityBar } from './AvailabilityBar'
 import { BookingModal } from './BookingModal'
 import { isBusyNow } from '../lib/availability'
+import { roomLocationLabel } from '../lib/rooms.config'
 import type { BusyInterval, Room } from '../lib/types'
 
 interface RoomCardProps {
@@ -14,6 +15,7 @@ interface RoomCardProps {
 export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const busyNow = isBusyNow(busy)
+  const location = roomLocationLabel(room)
 
   return (
     <div className="card flex flex-col p-5">
@@ -26,10 +28,10 @@ export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
                 <GrndIcon name="conexion" size={13} /> {room.capacity}
               </span>
             )}
-            {(room.building || room.floor) && (
+            {location && (
               <span className="inline-flex items-center gap-1">
                 <GrndIcon name="target" size={13} />
-                {[room.building, room.floor].filter(Boolean).join(' · ')}
+                {location}
               </span>
             )}
           </div>

@@ -20,16 +20,28 @@ function validateRoomInput(data: unknown): RoomInput {
   if (!name) throw new Error('La sala necesita un nombre.')
 
   const capacity =
-    d.capacity != null && Number.isFinite(Number(d.capacity)) && Number(d.capacity) > 0
+    d.capacity != null &&
+    Number.isFinite(Number(d.capacity)) &&
+    Number(d.capacity) > 0
       ? Math.floor(Number(d.capacity))
       : undefined
 
-  const building =
-    typeof d.building === 'string' && d.building.trim() ? d.building.trim() : undefined
-  const floor =
-    typeof d.floor === 'string' && d.floor.trim() ? d.floor.trim() : undefined
+  return {
+    name,
+    capacity,
+    building: optionalText(d.building),
+    floor: optionalText(d.floor),
+    description: optionalText(d.description),
+    directions: optionalText(d.directions),
+    address: optionalText(d.address),
+  }
+}
 
-  return { name, capacity, building, floor }
+/** Texto opcional: recorta y trata el vacío como ausente, para no guardar strings en blanco. */
+function optionalText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
 }
 
 /** Crea una sala. */

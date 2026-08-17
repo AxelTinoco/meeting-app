@@ -19,6 +19,9 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
   )
   const [building, setBuilding] = useState(room?.building ?? '')
   const [floor, setFloor] = useState(room?.floor ?? '')
+  const [description, setDescription] = useState(room?.description ?? '')
+  const [directions, setDirections] = useState(room?.directions ?? '')
+  const [address, setAddress] = useState(room?.address ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,6 +35,9 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
         capacity: capacity ? Number(capacity) : undefined,
         building: building.trim() || undefined,
         floor: floor.trim() || undefined,
+        description: description.trim() || undefined,
+        directions: directions.trim() || undefined,
+        address: address.trim() || undefined,
       }
       if (isEdit) {
         await updateRoomFn({
@@ -105,7 +111,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             <input
               value={building}
               onChange={(e) => setBuilding(e.target.value)}
-              placeholder="Ej. Oficina CDMX"
+              placeholder="Ej. Gerundio-HQ"
               className="input"
             />
           </Field>
@@ -113,32 +119,43 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
             <input
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
-              placeholder="Ej. Piso 3"
+              placeholder="Ej. Piso 4"
               className="input"
             />
           </Field>
         </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Edificio">
-              <input
-                value={building}
-                onChange={(e) => setBuilding(e.target.value)}
-                placeholder="Ej. Gerundio-HQ"
-                className="input"
-              />
-            </Field>
-            <Field label="Piso">
-              <input
-                value={floor}
-                onChange={(e) => setFloor(e.target.value)}
-                placeholder="Ej. Piso 4"
-                className="input"
-              />
-            </Field>
-          </div>
+        {/* Los tres campos de abajo son los que ve un invitado externo: descripción en
+            lenguaje normal, no el identificador interno del recurso. */}
+        <Field label="Descripción del lugar">
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ej. Terraza techada del último piso"
+            className="input"
+          />
+        </Field>
 
-          {error && <p className="alert-error">{error}</p>}
+        <Field label="Cómo llegar">
+          <textarea
+            rows={3}
+            value={directions}
+            onChange={(e) => setDirections(e.target.value)}
+            placeholder="Ej. Entra por recepción y toma el elevador al PH; la terraza está de frente."
+            className="input"
+          />
+        </Field>
+
+        <Field label="Dirección">
+          <input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Ej. Av. Insurgentes Sur 1234, Del Valle, CDMX"
+            className="input"
+          />
+        </Field>
+
+        {error && <p className="alert-error">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-ghost">

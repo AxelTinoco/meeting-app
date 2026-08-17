@@ -36,6 +36,16 @@ export interface Room {
   capacity?: number
   building?: string
   floor?: string
+  /**
+   * Descripción corta y humana del lugar, para quien nunca ha venido.
+   * `building`/`floor` son identificadores internos ("Gerundio-HQ", "PH") y no le dicen
+   * nada a un invitado externo; esto sí ("Terraza techada, último piso").
+   */
+  description?: string
+  /** Cómo llegar: acceso, recepción, elevador. Texto libre, puede ser multilínea. */
+  directions?: string
+  /** Dirección postal, para el invitado externo y para abrir Maps. */
+  address?: string
   /** Ubicación en el mapa espacial del dashboard. */
   map?: RoomMapPosition
 }
@@ -46,6 +56,9 @@ export interface RoomInput {
   capacity?: number
   building?: string
   floor?: string
+  description?: string
+  directions?: string
+  address?: string
 }
 
 export type MeetingType = 'interno' | 'cliente' | 'entrevista' | 'otro'
@@ -109,7 +122,8 @@ export interface Booking {
   meetLink?: string
 }
 
-export type AttendeeResponse = 'accepted' | 'declined' | 'tentative' | 'needsAction'
+export type AttendeeResponse =
+  'accepted' | 'declined' | 'tentative' | 'needsAction'
 
 export interface BookingAttendee {
   email: string

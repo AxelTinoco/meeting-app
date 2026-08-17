@@ -12,6 +12,7 @@ import { deleteRoomFn } from '../server/rooms'
 import { mxTimeLabel } from '../lib/mexico-time'
 import { railItemVariants, staggerContainer } from '../lib/motion'
 import { canManageBooking } from '../lib/permissions'
+import { roomLocationLabel, roomMapsUrl } from '../lib/rooms.config'
 import type {
   AttendeeResponse,
   Booking,
@@ -78,6 +79,8 @@ export function RoomDetailModal({
   const [deletingRoom, setDeletingRoom] = useState(false)
 
   const isAdmin = user.role === 'admin'
+  const location = roomLocationLabel(room)
+  const mapsUrl = roomMapsUrl(room)
 
   // Por hora real y no por string: los calendarios de las salas devuelven cada uno su
   // propio offset, así que comparar el ISO como texto desordena la lista.
@@ -103,8 +106,7 @@ export function RoomDetailModal({
                   personas
                 </span>
               )}
-              {room.building && <span>{room.building}</span>}
-              {room.floor && <span>{room.floor}</span>}
+              {location && <span>{location}</span>}
             </p>
           </div>
           <button
@@ -117,25 +119,58 @@ export function RoomDetailModal({
           </button>
         </div>
 
-          {/* Acciones de la sala: solo admins */}
-          {isAdmin && (
-            <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
-              <button
-                type="button"
-                onClick={() => setEditingRoom(true)}
-                className="btn-secondary px-3 py-1.5"
-              >
-                <GrndIcon name="transformando" size={14} /> Editar sala
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeletingRoom(true)}
-                className="btn-danger-outline px-3 py-1.5"
-              >
-                <Trash2 size={14} /> Eliminar sala
-              </button>
-            </div>
-          )}
+        {/* Acciones de la sala: solo admins */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 border-b border-ink-100 px-6 py-3">
+            <button
+              type="button"
+              onClick={() => setEditingRoom(true)}
+              className="btn-secondary px-3 py-1.5"
+            >
+              <GrndIcon name="transformando" size={14} /> Editar sala
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeletingRoom(true)}
+              className="btn-danger-outline px-3 py-1.5"
+            >
+              <Trash2 size={14} /> Eliminar sala
+            </button>
+          </div>
+        )}
+
+        {/* Cómo llegar: lo que necesita alguien que nunca ha venido. Se omite entero
+            cuando la sala no tiene ni indicaciones ni dirección. */}
+        {(room.directions || room.address) && (
+          <div className="border-b border-ink-100 px-6 py-4">
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink-700">
+              <GrndIcon name="target" size={14} /> Cómo llegar
+            </h3>
+            {room.directions && (
+              <p className="whitespace-pre-line text-sm text-ink-600">
+                {room.directions}
+              </p>
+            )}
+            {room.address && (
+              <p className="mt-2 text-sm text-ink-500">
+                {room.address}
+                {mapsUrl && (
+                  <>
+                    {' · '}
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-ink-900 underline"
+                    >
+                      Ver en Maps
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Lista de reservas de hoy */}
         <div className="flex-1 overflow-y-auto px-6 py-4">

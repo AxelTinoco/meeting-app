@@ -11,6 +11,11 @@
 
 import { CALENDAR_SCOPES, GOOGLE_WORKSPACE_DOMAIN } from '../constants'
 import { MX_TZ } from '../mexico-time'
+import {
+  findRoom,
+  roomEventDescription,
+  roomEventLocation,
+} from '../rooms.config'
 import type {
   AttendeeResponse,
   Booking,
@@ -125,7 +130,12 @@ const RESPONSES: AttendeeResponse[] = [
   'needsAction',
 ]
 
-const MEETING_TYPES: MeetingType[] = ['interno', 'cliente', 'entrevista', 'otro']
+const MEETING_TYPES: MeetingType[] = [
+  'interno',
+  'cliente',
+  'entrevista',
+  'otro',
+]
 
 /** `extendedProperties` es texto libre: cualquiera con acceso al evento pudo escribir ahí. */
 function toMeetingType(value: string | undefined): MeetingType | undefined {
@@ -135,7 +145,9 @@ function toMeetingType(value: string | undefined): MeetingType | undefined {
 }
 
 function isExternal(email: string): boolean {
-  return !email.toLowerCase().endsWith(`@${GOOGLE_WORKSPACE_DOMAIN.toLowerCase()}`)
+  return !email
+    .toLowerCase()
+    .endsWith(`@${GOOGLE_WORKSPACE_DOMAIN.toLowerCase()}`)
 }
 
 function toBookingAttendee(a: GCalAttendee): BookingAttendee {
@@ -199,7 +211,10 @@ function normalizeGuests(
   organizerEmail: string,
   roomEmail: string,
 ): string[] {
-  const excluded = new Set([organizerEmail.toLowerCase(), roomEmail.toLowerCase()])
+  const excluded = new Set([
+    organizerEmail.toLowerCase(),
+    roomEmail.toLowerCase(),
+  ])
   const seen = new Set<string>()
   const out: string[] = []
   for (const raw of attendees ?? []) {
@@ -261,7 +276,8 @@ function eventBody(input: BookingInput, current?: GCalEvent) {
   const shared: Record<string, string> = {}
   if (input.clientName) shared.clientName = input.clientName
   if (input.meetingType) shared.meetingType = input.meetingType
-  if (input.attendeeCount != null) shared.attendeeCount = String(input.attendeeCount)
+  if (input.attendeeCount != null)
+    shared.attendeeCount = String(input.attendeeCount)
 
   const guests = normalizeGuests(
     input.attendees,
@@ -269,8 +285,15 @@ function eventBody(input: BookingInput, current?: GCalEvent) {
     input.roomEmail,
   )
 
+  // Ubicación en lenguaje humano para el invitado externo: la app no la ve, pero el
+  // correo de invitación sí. Si la sala no está en config (o no tiene textos), los campos
+  // salen `undefined` y `JSON.stringify` los omite, así que el PATCH los deja intactos.
+  const room = findRoom(input.roomEmail)
+
   return {
     summary: input.title,
+    location: room ? roomEventLocation(room) : undefined,
+    description: room ? roomEventDescription(room) : undefined,
     start: { dateTime: input.startTime, timeZone: MX_TZ },
     end: { dateTime: input.endTime, timeZone: MX_TZ },
     attendees: [
@@ -284,7 +307,10 @@ function eventBody(input: BookingInput, current?: GCalEvent) {
     // Solo quien reserva controla la lista, para que la app sea la fuente de verdad.
     guestsCanInviteOthers: false,
     extendedProperties: { shared },
-    ...conferencePatch(input.withMeet === true, current != null && hasMeet(current)),
+    ...conferencePatch(
+      input.withMeet === true,
+      current != null && hasMeet(current),
+    ),
   }
 }
 
@@ -466,7 +492,9 @@ export async function deleteEvent(
   )
   // 410 = ya estaba cancelado.
   if (!res.ok && res.status !== 410) {
-    throw new Error(`No se pudo cancelar la reserva (${res.status}): ${await res.text()}`)
+    throw new Error(
+      `No se pudo cancelar la reserva (${res.status}): ${await res.text()}`,
+    )
   }
 }
 
