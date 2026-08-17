@@ -1,7 +1,7 @@
 import type { Room } from './types'
 
 /** Todas las salas de hoy están en la misma sede; se repite en cada una para no acoplarlas. */
-const ADDRESS_HQ = 'TODO: dirección de Gerundio-HQ'
+const ADDRESS_HQ = 'dirección de Gerundio-HQ'
 
 /**
  * Primer paso, igual para todas: quien viene de fuera entra por la misma recepción.
