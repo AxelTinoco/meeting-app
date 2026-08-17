@@ -91,6 +91,7 @@ function validateBookingInput(data: unknown): BookingDraft {
     attendeeCount,
     attendees: validateAttendees(d.attendees),
     clientName,
+    withMeet: d.withMeet === true,
   }
 }
 
