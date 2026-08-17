@@ -1,6 +1,6 @@
 import { MoreHorizontal } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Avatar } from './Avatar'
+import { AttendeeStack } from './AttendeeStack'
 import { GrndIcon } from './GrndIcon'
 import { MX_TZ, mxTimeLabel } from '../lib/mexico-time'
 import {
@@ -9,7 +9,6 @@ import {
   staggerContainer,
 } from '../lib/motion'
 import type { UpcomingItem, UpcomingStatus } from '../lib/dashboard'
-import type { BookingAttendee } from '../lib/types'
 
 interface UpcomingRailProps {
   items: UpcomingItem[]
@@ -242,45 +241,5 @@ function UpcomingCard({ item }: { item: UpcomingItem }) {
         <AttendeeStack attendees={item.attendees} />
       </div>
     </motion.div>
-  )
-}
-
-/** Cuántas caras caben en la tarjeta antes de resumir con "+N". */
-const STACK_MAX = 4
-
-/** Pila de caras superpuestas. El anillo blanco es lo que separa una foto de la siguiente. */
-function AttendeeStack({ attendees }: { attendees?: BookingAttendee[] }) {
-  if (!attendees?.length) return null
-
-  const shown = attendees.slice(0, STACK_MAX)
-  const rest = attendees.length - shown.length
-
-  return (
-    <div className="flex shrink-0 items-center -space-x-1.5">
-      {shown.map((a) => (
-        <Avatar
-          key={a.email}
-          email={a.email}
-          name={a.displayName}
-          picture={a.picture}
-          size={22}
-          // Aquí el avatar va solo, sin el nombre al lado: sin `alt` un lector de
-          // pantalla no diría a quién corresponde la cara.
-          alt={a.displayName ?? a.email}
-          className="ring-2 ring-white"
-        />
-      ))}
-      {rest > 0 && (
-        <span
-          title={attendees
-            .slice(STACK_MAX)
-            .map((a) => a.displayName ?? a.email)
-            .join(', ')}
-          className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink-200 text-[9px] font-semibold leading-none text-ink-600 ring-2 ring-white"
-        >
-          +{rest}
-        </span>
-      )}
-    </div>
   )
 }

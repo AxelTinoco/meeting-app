@@ -20,11 +20,14 @@ export function mxISODate(date: Date = new Date()): string {
   }).format(date)
 }
 
+/** "HH:MM" con ceros a la izquierda, el formato que esperan los <input type="time">. */
+function hhmm(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
 /** Construye un ISO 8601 con offset de CDMX para una fecha + hora dadas. */
 export function mxDateTime(isoDate: string, hour: number, minute = 0): string {
-  const hh = String(hour).padStart(2, '0')
-  const mm = String(minute).padStart(2, '0')
-  return `${isoDate}T${hh}:${mm}:00${MX_OFFSET}`
+  return `${isoDate}T${hhmm(hour, minute)}:00${MX_OFFSET}`
 }
 
 /** Hora local de CDMX (con fracción de minutos) de un instante ISO. */
@@ -59,6 +62,26 @@ export function mxISO(dateYYYYMMDD: string, timeHHMM: string): string {
 /** Descompone un ISO en los valores que esperan los inputs nativos <date>/<time> en hora CDMX. */
 export function mxInputParts(iso: string): { date: string; time: string } {
   return { date: mxISODate(new Date(iso)), time: mxTimeLabel(iso) }
+}
+
+/**
+ * Hora de arranque por defecto de una reserva: la hora de CDMX en la que estamos,
+ * redondeada al múltiplo de `stepMinutes`. Redondea hacia ABAJO a propósito: quien
+ * reserva casi siempre está empezando la junta ya, y con un redondeo hacia arriba la
+ * sala se quedaría unos minutos en "Próxima" en vez de marcarse ocupada de inmediato.
+ */
+export function mxNowTime(now: Date = new Date(), stepMinutes = 5): string {
+  const [h, m] = mxTimeLabel(now.toISOString()).split(':').map(Number)
+  return hhmm(h, m - (m % stepMinutes))
+}
+
+/** Suma minutos a un "HH:MM", topando en 23:59 para no cruzar de día. */
+export function addMinutes(timeHHMM: string, minutes: number): string {
+  const [h, m] = timeHHMM.split(':').map(Number)
+  // El formulario manda fecha y hora por separado: si el fin se pasara de medianoche
+  // acabaría antes que el inicio del mismo día. Mejor topar en el último minuto.
+  const total = Math.min(h * 60 + m + minutes, 23 * 60 + 59)
+  return hhmm(Math.floor(total / 60), total % 60)
 }
 
 /** Rango [00:00, 24:00) de un día en CDMX. */

@@ -4,7 +4,13 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ModalShell } from './ModalShell'
 import { createBookingFn, updateBookingFn } from '../server/bookings'
 import { AttendeesInput } from './AttendeesInput'
-import { mxISO, mxISODate, mxInputParts } from '../lib/mexico-time'
+import {
+  addMinutes,
+  mxISO,
+  mxISODate,
+  mxInputParts,
+  mxNowTime,
+} from '../lib/mexico-time'
 import type { Booking, MeetingType, Room } from '../lib/types'
 
 interface BookingModalProps {
@@ -43,9 +49,15 @@ export function BookingModal({
   const [attendees, setAttendees] = useState<string[]>(
     booking?.attendees?.map((a) => a.email) ?? [],
   )
+  // Reserva nueva → el formulario arranca en la hora en la que estamos, no en un
+  // 10:00 fijo: casi siempre se reserva para empezar ya. Se lee el reloj una sola vez,
+  // al montar el modal, para que los ticks no le muevan los campos a quien escribe.
+  const [defaultStart] = useState(() => mxNowTime())
   const [date, setDate] = useState(startParts?.date ?? mxISODate())
-  const [startTime, setStartTime] = useState(startParts?.time ?? '10:00')
-  const [endTime, setEndTime] = useState(endParts?.time ?? '11:00')
+  const [startTime, setStartTime] = useState(startParts?.time ?? defaultStart)
+  const [endTime, setEndTime] = useState(
+    endParts?.time ?? addMinutes(defaultStart, 60),
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -184,68 +196,39 @@ export function BookingModal({
               className="input"
             />
           </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Inicio">
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="input"
-              />
-            </Field>
-            <Field label="Fin">
-              <input
-                type="time"
-                required
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="input"
-              />
-            </Field>
-          </div>
-
-          <Field label="Invitar a">
-            <AttendeesInput value={attendees} onChange={setAttendees} />
-          </Field>
-
-          <Field
-            label={`Personas en la sala${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
-          >
+          <Field label="Fin">
             <input
-              type="number"
-              min={1}
-              value={attendeeCount}
-              onChange={(e) => setAttendeeCount(e.target.value)}
-              placeholder={String(attendees.length + 1)}
+              type="time"
+              required
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
               className="input"
             />
-            {overCapacity ? (
-              <p className="mt-1 text-xs text-amarillo-700">
-                {headcount} personas exceden la capacidad de la sala (informativo).
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-ink-500">
-                Opcional. Úsalo si van más personas de las que invitaste por correo.
-              </p>
-            )}
           </Field>
         </div>
 
+        <Field label="Invitar a">
+          <AttendeesInput value={attendees} onChange={setAttendees} />
+        </Field>
+
         <Field
-          label={`Asistentes${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
+          label={`Personas en la sala${room.capacity ? ` (capacidad ${room.capacity})` : ''}`}
         >
           <input
             type="number"
             min={1}
             value={attendeeCount}
             onChange={(e) => setAttendeeCount(e.target.value)}
+            placeholder={String(attendees.length + 1)}
             className="input"
           />
-          {overCapacity && (
-            <p className="mt-1 text-xs text-amarillo-600">
-              Excede la capacidad de la sala (informativo).
+          {overCapacity ? (
+            <p className="mt-1 text-xs text-amarillo-700">
+              {headcount} personas exceden la capacidad de la sala (informativo).
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-ink-500">
+              Opcional. Úsalo si van más personas de las que invitaste por correo.
             </p>
           )}
         </Field>
