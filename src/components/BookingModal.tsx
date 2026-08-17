@@ -4,7 +4,13 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ModalShell } from './ModalShell'
 import { createBookingFn, updateBookingFn } from '../server/bookings'
 import { AttendeesInput } from './AttendeesInput'
-import { mxISO, mxISODate, mxInputParts } from '../lib/mexico-time'
+import {
+  addMinutes,
+  mxISO,
+  mxISODate,
+  mxInputParts,
+  mxNowTime,
+} from '../lib/mexico-time'
 import type { Booking, MeetingType, Room } from '../lib/types'
 
 interface BookingModalProps {
@@ -46,9 +52,15 @@ export function BookingModal({
   // Al editar, el interruptor arranca reflejando la realidad de la junta: si ya tiene
   // Meet queda encendido, y apagarlo es lo que retira la sala virtual.
   const [withMeet, setWithMeet] = useState(booking?.meetLink != null)
+  // Reserva nueva → el formulario arranca en la hora en la que estamos, no en un
+  // 10:00 fijo: casi siempre se reserva para empezar ya. Se lee el reloj una sola vez,
+  // al montar el modal, para que los ticks no le muevan los campos a quien escribe.
+  const [defaultStart] = useState(() => mxNowTime())
   const [date, setDate] = useState(startParts?.date ?? mxISODate())
-  const [startTime, setStartTime] = useState(startParts?.time ?? '10:00')
-  const [endTime, setEndTime] = useState(endParts?.time ?? '11:00')
+  const [startTime, setStartTime] = useState(startParts?.time ?? defaultStart)
+  const [endTime, setEndTime] = useState(
+    endParts?.time ?? addMinutes(defaultStart, 60),
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

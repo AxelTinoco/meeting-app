@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import { AttendeeStack } from './AttendeeStack'
 import { GrndIcon } from './GrndIcon'
 import { ROOM_STATUS_STYLES } from '../lib/dashboard'
 import type { RoomView } from '../lib/dashboard'
@@ -27,6 +28,10 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
     : next
       ? `Próxima ${mxTimeLabel(next.startTime)} · ${next.title}`
       : 'Disponible todo el día'
+
+  // Las caras son de la reunión que describe el pie: quién está dentro ahora, o quién
+  // llega en la próxima. Atenuadas cuando todavía no han llegado.
+  const meeting = current ?? next
 
   return (
     // La entrada la lleva el envoltorio en CSS (`tile-enter`, ver styles.css) y no
@@ -59,6 +64,16 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
           <span className={`text-[10px] font-bold tracking-wide ${style.text}`}>
             {style.label}
           </span>
+        </span>
+
+        {/* Centradas en el cuadro: el interior de la sala es justo el hueco libre y
+            así la ocupación se lee de un vistazo desde el plano completo. */}
+        <span
+          className={`pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-center ${
+            current ? '' : 'opacity-60'
+          }`}
+        >
+          <AttendeeStack attendees={meeting?.attendees} size={28} max={5} />
         </span>
 
         <span className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2">
