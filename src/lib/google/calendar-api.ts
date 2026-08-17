@@ -74,6 +74,17 @@ interface GCalAttendee {
   responseStatus?: string
 }
 
+interface GCalEntryPoint {
+  entryPointType?: string
+  uri?: string
+}
+
+interface GCalConferenceData {
+  conferenceId?: string
+  entryPoints?: GCalEntryPoint[]
+  createRequest?: { requestId?: string; status?: { statusCode?: string } }
+}
+
 interface GCalEvent {
   id: string
   summary?: string
@@ -84,10 +95,27 @@ interface GCalEvent {
   organizer?: { email?: string }
   creator?: { email?: string }
   attendees?: GCalAttendee[]
+  /** Atajo de Google a la liga de Meet. Es lo mismo que el entryPoint de video. */
+  hangoutLink?: string
+  conferenceData?: GCalConferenceData
   extendedProperties?: {
     private?: Record<string, string>
     shared?: Record<string, string>
   }
+}
+
+/**
+ * Liga de la videollamada, si la junta tiene sala virtual.
+ *
+ * `hangoutLink` es el camino corto, pero solo aparece en conferencias de Meet ya
+ * creadas: una recién pedida puede volver con `conferenceData.createRequest` en curso
+ * y el entryPoint listo antes que el atajo, de ahí el segundo intento.
+ */
+function meetLinkOf(ev: GCalEvent): string | undefined {
+  if (ev.hangoutLink) return ev.hangoutLink
+  return ev.conferenceData?.entryPoints?.find(
+    (e) => e.entryPointType === 'video' && e.uri,
+  )?.uri
 }
 
 const RESPONSES: AttendeeResponse[] = [
@@ -161,6 +189,7 @@ function eventToBooking(ev: GCalEvent, fallbackRoomEmail?: string): Booking {
     endTime: ev.end?.dateTime ?? ev.end?.date ?? '',
     organizerEmail,
     htmlLink: ev.htmlLink,
+    meetLink: meetLinkOf(ev),
   }
 }
 
@@ -182,8 +211,53 @@ function normalizeGuests(
   return out
 }
 
-/** Cuerpo del evento compartido por insert y patch. */
-function eventBody(input: BookingInput) {
+/**
+ * ¿La junta ya tiene sala virtual?
+ *
+ * No basta con mirar la liga: una conferencia recién pedida existe (`conferenceId`)
+ * aunque su entryPoint todavía no esté publicado, y tratarla como inexistente haría
+ * que la siguiente edición pidiera una segunda sala.
+ */
+function hasMeet(ev: GCalEvent): boolean {
+  return meetLinkOf(ev) != null || ev.conferenceData?.conferenceId != null
+}
+
+/**
+ * Parte del body que gobierna la sala virtual de Meet.
+ *
+ * Google no expone un "activa/desactiva Meet": se pide una conferencia nueva con
+ * `createRequest` o se borra mandando `null`. Por eso hay tres casos y no dos —
+ * cuando la junta ya tiene Meet y sigue queriéndolo, lo correcto es NO mandar el
+ * campo: un `createRequest` nuevo generaría otra liga y la que ya circula en los
+ * correos de los invitados dejaría de ser la buena.
+ *
+ * Requiere `conferenceDataVersion=1` en la petición; sin ese parámetro Calendar
+ * ignora este bloque en silencio.
+ */
+function conferencePatch(want: boolean, hasMeetNow: boolean) {
+  if (want && !hasMeetNow) {
+    return {
+      conferenceData: {
+        createRequest: {
+          // Identifica el intento, no la conferencia: reintentar con el mismo id
+          // devuelve la misma sala en vez de crear otra.
+          requestId: crypto.randomUUID(),
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
+        },
+      },
+    }
+  }
+  if (!want && hasMeetNow) return { conferenceData: null }
+  return {}
+}
+
+/**
+ * Cuerpo del evento compartido por insert y patch.
+ *
+ * `current` es el evento tal como está hoy en Calendar (solo en edición): se usa para
+ * saber si ya tiene Meet y decidir si hay que crearlo, quitarlo o dejarlo en paz.
+ */
+function eventBody(input: BookingInput, current?: GCalEvent) {
   const shared: Record<string, string> = {}
   if (input.clientName) shared.clientName = input.clientName
   if (input.meetingType) shared.meetingType = input.meetingType
@@ -210,6 +284,7 @@ function eventBody(input: BookingInput) {
     // Solo quien reserva controla la lista, para que la app sea la fuente de verdad.
     guestsCanInviteOthers: false,
     extendedProperties: { shared },
+    ...conferencePatch(input.withMeet === true, current != null && hasMeet(current)),
   }
 }
 
@@ -290,7 +365,7 @@ export async function insertEvent(input: BookingInput): Promise<Booking> {
 
   const res = await authedFetch(
     subject,
-    `/calendars/${PRIMARY}/events?sendUpdates=all`,
+    `/calendars/${PRIMARY}/events?sendUpdates=all&conferenceDataVersion=1`,
     { method: 'POST', body: JSON.stringify(eventBody(input)) },
   )
   return eventToBooking((await res.json()) as GCalEvent, input.roomEmail)
@@ -367,8 +442,8 @@ export async function patchEvent(
 
   const res = await authedFetch(
     subject,
-    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
-    { method: 'PATCH', body: JSON.stringify(eventBody(input)) },
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all&conferenceDataVersion=1`,
+    { method: 'PATCH', body: JSON.stringify(eventBody(input, original)) },
   )
   return eventToBooking((await res.json()) as GCalEvent, input.roomEmail)
 }

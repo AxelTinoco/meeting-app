@@ -64,6 +64,14 @@ export interface BookingInput {
    * la invitación. NO incluye al organizador ni a la sala: esos se agregan solos.
    */
   attendees?: string[]
+  /**
+   * Si es true, la junta lleva sala virtual de Google Meet.
+   *
+   * Al crear, Google genera la liga; al editar, activarlo la crea y desactivarlo la
+   * quita. Si ya existía y sigue activo, la liga NO se regenera (los invitados ya la
+   * tienen en su invitación).
+   */
+  withMeet?: boolean
   /** ISO 8601 con offset (ej. 2026-07-01T13:00:00-06:00) */
   startTime: string
   /** ISO 8601 con offset */
@@ -92,6 +100,13 @@ export interface Booking {
   organizerEmail: string
   /** Link al evento en la UI de Google Calendar (si aplica). */
   htmlLink?: string
+  /**
+   * Liga para entrar por videollamada (Google Meet), si la junta tiene sala virtual.
+   *
+   * Puede faltar durante unos segundos en una junta recién creada: Google a veces
+   * devuelve la conferencia en estado `pending` y la liga aparece al recargar.
+   */
+  meetLink?: string
 }
 
 export type AttendeeResponse = 'accepted' | 'declined' | 'tentative' | 'needsAction'

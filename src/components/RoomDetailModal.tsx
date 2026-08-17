@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, X } from 'lucide-react'
+import { Trash2, Video, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
@@ -193,6 +193,19 @@ export function RoomDetailModal({
                         {mxTimeLabel(b.startTime)} – {mxTimeLabel(b.endTime)}
                         {b.clientName ? ` · ${b.clientName}` : ''}
                       </p>
+                      {b.meetLink && (
+                        // `stopPropagation` no hace falta (la tarjeta no es clicable),
+                        // pero sí abrir en pestaña nueva: entrar a la llamada no debe
+                        // tirar el dashboard que está en pantalla.
+                        <a
+                          href={b.meetLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
+                        >
+                          <Video size={13} /> Unirse a la videollamada
+                        </a>
+                      )}
                       {b.attendees?.length ? (
                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
                           {b.attendees.map((a) => (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { Check, Copy, Video, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ModalShell } from './ModalShell'
 import { createBookingFn, updateBookingFn } from '../server/bookings'
@@ -49,6 +49,9 @@ export function BookingModal({
   const [attendees, setAttendees] = useState<string[]>(
     booking?.attendees?.map((a) => a.email) ?? [],
   )
+  // Al editar, el interruptor arranca reflejando la realidad de la junta: si ya tiene
+  // Meet queda encendido, y apagarlo es lo que retira la sala virtual.
+  const [withMeet, setWithMeet] = useState(booking?.meetLink != null)
   // Reserva nueva → el formulario arranca en la hora en la que estamos, no en un
   // 10:00 fijo: casi siempre se reserva para empezar ya. Se lee el reloj una sola vez,
   // al montar el modal, para que los ticks no le muevan los campos a quien escribe.
@@ -81,6 +84,7 @@ export function BookingModal({
         clientName: meetingType === 'cliente' ? clientName.trim() : undefined,
         attendeeCount: attendeeCount ? Number(attendeeCount) : undefined,
         attendees,
+        withMeet,
         startTime: mxISO(date, startTime),
         endTime: mxISO(date, endTime),
       }
@@ -233,6 +237,12 @@ export function BookingModal({
           )}
         </Field>
 
+        <MeetToggle
+          checked={withMeet}
+          onChange={setWithMeet}
+          existingLink={booking?.meetLink}
+        />
+
         {error && <p className="alert-error">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
@@ -249,6 +259,125 @@ export function BookingModal({
         </div>
       </form>
     </ModalShell>
+  )
+}
+
+/**
+ * Interruptor de sala virtual.
+ *
+ * La liga no se escribe a mano: la genera Google al guardar (ver `conferencePatch` en
+ * `google/calendar-api.ts`) y viaja sola en la invitación de cada asistente. Por eso
+ * aquí solo hay un sí/no, y la liga que se muestra es la de una junta que ya existe.
+ */
+function MeetToggle({
+  checked,
+  onChange,
+  existingLink,
+}: {
+  checked: boolean
+  onChange: (value: boolean) => void
+  /** Liga actual, si la junta que se edita ya tenía Meet. */
+  existingLink?: string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  async function copy() {
+    if (!existingLink) return
+    await navigator.clipboard.writeText(existingLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className="rounded-xl border border-ink-200 px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-800">
+            <Video size={15} className="text-ink-500" /> Videoconferencia
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            Agrega una sala de Google Meet para quien se conecte a distancia.
+          </p>
+        </div>
+        <Switch
+          checked={checked}
+          onChange={onChange}
+          label="Agregar videoconferencia"
+        />
+      </div>
+
+      <AnimatePresence initial={false}>
+        {checked && existingLink && (
+          <motion.div
+            key="link"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 flex items-center gap-2 border-t border-ink-100 pt-3">
+              <a
+                href={existingLink}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-xs font-medium text-brand-700 hover:underline"
+              >
+                {existingLink.replace(/^https?:\/\//, '')}
+              </a>
+              <button
+                type="button"
+                onClick={copy}
+                className="btn-icon shrink-0"
+                aria-label="Copiar liga de la videoconferencia"
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Solo cuando de verdad hay algo que perder: quitar la sala virtual invalida la
+          liga que los invitados ya tienen en su correo. */}
+      {!checked && existingLink && (
+        <p className="mt-2 text-xs text-amarillo-700">
+          Al guardar se quitará la videollamada y la liga actual dejará de funcionar.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Interruptor accesible (role="switch"), con la perilla animada por motion. */
+function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean
+  onChange: (value: boolean) => void
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        checked ? 'bg-brand-500' : 'bg-ink-300'
+      }`}
+    >
+      <motion.span
+        layout
+        transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+        className={`size-5 rounded-full bg-white shadow-sm ${
+          checked ? 'ml-auto mr-0.5' : 'ml-0.5'
+        }`}
+      />
+    </button>
   )
 }
 
