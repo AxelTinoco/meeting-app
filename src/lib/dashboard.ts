@@ -44,6 +44,23 @@ export const ROOM_STATUS_STYLES: Record<RoomStatus, RoomStatusStyle> = {
   },
 }
 
+/**
+ * El mismo estado, pero para el mapa 3D: un material de three.js necesita un color
+ * real, no una clase de Tailwind.
+ *
+ * Guarda los nombres de las variables y no los hex a propósito — el color se
+ * resuelve en el navegador contra `styles.css`, así que sigue habiendo una sola
+ * paleta. Los `@theme static` de la hoja garantizan que las variables existan.
+ */
+export const ROOM_STATUS_VARS: Record<
+  RoomStatus,
+  { fill: string; edge: string }
+> = {
+  active: { fill: '--color-rosa-400', edge: '--color-rosa-600' },
+  reserved: { fill: '--color-brand-500', edge: '--color-brand-700' },
+  free: { fill: '--color-aqua-300', edge: '--color-aqua-500' },
+}
+
 export interface RoomView {
   room: Room
   status: RoomStatus
