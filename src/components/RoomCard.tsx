@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GrndIcon } from './GrndIcon'
+import { RoomIcon } from './RoomIcon'
 import { AvailabilityBar } from './AvailabilityBar'
 import { BookingModal } from './BookingModal'
 import { isBusyNow } from '../lib/availability'
@@ -20,20 +21,25 @@ export function RoomCard({ room, busy, onChanged }: RoomCardProps) {
   return (
     <div className="card flex flex-col p-5">
       <div className="mb-3 flex items-start justify-between">
-        <div>
-          <h3 className="text-base font-semibold text-ink-900">{room.name}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
-            {room.capacity != null && (
-              <span className="inline-flex items-center gap-1">
-                <GrndIcon name="conexion" size={13} /> {room.capacity}
-              </span>
-            )}
-            {location && (
-              <span className="inline-flex items-center gap-1">
-                <GrndIcon name="target" size={13} />
-                {location}
-              </span>
-            )}
+        <div className="flex items-start gap-3">
+          <RoomIcon src={room.icon} size={36} />
+          <div>
+            <h3 className="text-base font-semibold text-ink-900">
+              {room.name}
+            </h3>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+              {room.capacity != null && (
+                <span className="inline-flex items-center gap-1">
+                  <GrndIcon name="conexion" size={13} /> {room.capacity}
+                </span>
+              )}
+              {location && (
+                <span className="inline-flex items-center gap-1">
+                  <GrndIcon name="target" size={13} />
+                  {location}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <StatusBadge busyNow={busyNow} />

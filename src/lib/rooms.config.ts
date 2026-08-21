@@ -40,6 +40,7 @@ export const ROOMS: readonly Room[] = [
     // Del plano a mano del PH: a paño con los baños y en su misma banda, ocupando de
     // ahí hasta la fachada derecha. El resto de la azotea queda abierto.
     map: { x: 61, y: 0.5, w: 37.8, h: 48.4 },
+    icon: '/icons/rooms/Taller.svg',
   },
   {
     resourceEmail:
@@ -55,6 +56,7 @@ export const ROOMS: readonly Room[] = [
     // arriba, cafetería y librero en medio, operación abajo — así que la pecera
     // llega solo hasta donde empieza la cafetería (ver `floorplan.ts`).
     map: { x: 69.6, y: 0.8, w: 30.3, h: 34 },
+    icon: '/icons/rooms/Pecera.svg',
   },
   {
     resourceEmail:
@@ -68,6 +70,7 @@ export const ROOMS: readonly Room[] = [
     address: ADDRESS_HQ,
     // Esquina inferior izquierda del Piso 4, al fondo del área de escritorios.
     map: { x: 0.5, y: 60.5, w: 19.9, h: 39.5 },
+    icon: '/icons/rooms/Salita.svg',
   },
 ] as const
 

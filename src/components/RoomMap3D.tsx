@@ -9,6 +9,7 @@ import {
 } from 'three'
 import { MapZoomButton } from './MapZoomButton'
 import { GrndIcon } from './GrndIcon'
+import { RoomIcon } from './RoomIcon'
 import { ROOM_STATUS_STYLES, ROOM_STATUS_VARS, deriveRoomView } from '../lib/dashboard'
 import { groupRoomsByFloor } from '../lib/floors'
 import { fixturesForFloor } from '../lib/floorplan'
@@ -581,7 +582,8 @@ function RoomBox({ view, onSelect }: RoomBoxProps) {
         pointerEvents="none"
       >
         <span className="pointer-events-none flex flex-col items-center gap-1 select-none">
-          <span className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-semibold whitespace-nowrap text-ink-950 shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white py-1 pl-1 pr-3 text-xs font-semibold whitespace-nowrap text-ink-950 shadow-sm">
+            <RoomIcon src={room.icon} size={18} />
             <span className={`size-2 rounded-full ${style.dot}`} />
             {room.name}
             <span className={`text-[10px] font-bold ${style.text}`}>

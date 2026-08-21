@@ -48,6 +48,8 @@ export interface Room {
   address?: string
   /** Ubicación en el mapa espacial del dashboard. */
   map?: RoomMapPosition
+  /** Ícono cuadrado de la sala (`public/icons/rooms/*.svg`), fondo oscuro incluido. */
+  icon?: string
 }
 
 /** Datos editables de una sala (para crear/editar). El `resourceEmail` se deriva del nombre al crear. */

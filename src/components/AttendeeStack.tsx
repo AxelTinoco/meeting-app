@@ -24,7 +24,6 @@ export function AttendeeStack({
 }: AttendeeStackProps) {
   if (!attendees?.length) return null
 
-
   const shown = attendees.slice(0, max)
   const rest = attendees.length - shown.length
 
@@ -59,11 +58,6 @@ export function AttendeeStack({
           +{rest}
         </span>
       )}
-
-      <form>
-        <input className='' placeholder='agrgar edad'>
-        </input>
-      </form>
     </span>
   )
 }

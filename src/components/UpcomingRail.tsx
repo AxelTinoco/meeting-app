@@ -37,7 +37,7 @@ export function UpcomingRail({ items, now }: UpcomingRailProps) {
           estado y entran/salen solas, así que la lista anima presencia y no
           solo la carga inicial. */}
       <motion.div
-        className="flex flex-col gap-3 overflow-y-auto"
+        className="flex flex-col gap-3 overflow-y-auto overflow-x-hidden"
         variants={staggerContainer(0.06, 0.1)}
         initial="hidden"
         animate="visible"
