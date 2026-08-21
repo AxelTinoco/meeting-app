@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { AttendeeStack } from './AttendeeStack'
 import { GrndIcon } from './GrndIcon'
+import { RoomIcon } from './RoomIcon'
 import { ROOM_STATUS_STYLES } from '../lib/dashboard'
 import type { RoomView } from '../lib/dashboard'
 import { mxTimeLabel } from '../lib/mexico-time'
@@ -58,7 +59,8 @@ export function RoomTile({ view, index, onSelect }: RoomTileProps) {
         whileTap={{ scale: 0.985, transition: springSnappy }}
         className={`group relative h-full w-full rounded-2xl border-2 ${style.border} ${style.tile} text-left shadow-sm transition-shadow hover:shadow-md`}
       >
-        <span className="absolute -top-3.5 left-4 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-950 shadow-sm">
+        <span className="absolute -top-3.5 left-4 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white py-1 pl-1 pr-3 text-xs font-semibold text-ink-950 shadow-sm">
+          <RoomIcon src={room.icon} size={20} />
           <span className={`size-2 rounded-full ${style.dot}`} />
           {room.name}
           <span className={`text-[10px] font-bold tracking-wide ${style.text}`}>
