@@ -37,7 +37,9 @@ export const ROOMS: readonly Room[] = [
     description: 'Terraza techada, último piso',
     directions: `${LLEGADA} Sube hasta el último piso: la terraza queda a mano izquierda.`,
     address: ADDRESS_HQ,
-    map: { x: 22, y: 6, w: 30, h: 26 },
+    // Del plano a mano del PH: a paño con los baños y en su misma banda, ocupando de
+    // ahí hasta la fachada derecha. El resto de la azotea queda abierto.
+    map: { x: 61, y: 0.5, w: 37.8, h: 48.4 },
   },
   {
     resourceEmail:
@@ -49,7 +51,10 @@ export const ROOMS: readonly Room[] = [
     description: 'Sala de vidrio, piso 4',
     directions: `${LLEGADA} Sube al piso 4 y entra: pasando el área de café y el librero, es la sala de vidrio de la izquierda.`,
     address: ADDRESS_HQ,
-    map: { x: 48, y: 40, w: 34, h: 34 },
+    // Del plano a mano del Piso 4. El bloque derecho va en tres bandas: la pecera
+    // arriba, cafetería y librero en medio, operación abajo — así que la pecera
+    // llega solo hasta donde empieza la cafetería (ver `floorplan.ts`).
+    map: { x: 69.6, y: 0.8, w: 30.3, h: 34 },
   },
   {
     resourceEmail:
@@ -61,7 +66,8 @@ export const ROOMS: readonly Room[] = [
     description: 'Sala chica al fondo, piso 4',
     directions: `${LLEGADA} Sube al piso 4 y cruza el área de trabajo: al fondo está la sala, con mesa y televisor.`,
     address: ADDRESS_HQ,
-    map: { x: 8, y: 66, w: 28, h: 24 },
+    // Esquina inferior izquierda del Piso 4, al fondo del área de escritorios.
+    map: { x: 0.5, y: 60.5, w: 19.9, h: 39.5 },
   },
 ] as const
 
