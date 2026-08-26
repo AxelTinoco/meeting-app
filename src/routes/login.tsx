@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { GrndIcon } from '../components/GrndIcon'
+import { Isotipo } from '../components/Isotipo'
 import { LiquidBackground } from '../components/LiquidBackground'
 import { GOOGLE_WORKSPACE_DOMAIN } from '../lib/constants'
 import type { LiquidVariant } from '../components/LiquidBackground'
@@ -50,9 +51,7 @@ function LoginPage() {
       />
 
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/20 bg-white/95 px-8 py-10 text-center shadow-[0_28px_80px_-24px_rgba(2,0,42,0.85)] backdrop-blur-md">
-        <div className="mx-auto mb-6 flex size-14 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-sm">
-          <GrndIcon name="ideas" size={28} />
-        </div>
+        <Isotipo size={56} className="mx-auto mb-6 block" />
 
         <h1 className="text-xl font-bold text-ink-900">Gerundio · Salas</h1>
         <p className="mt-2 text-sm text-ink-500">

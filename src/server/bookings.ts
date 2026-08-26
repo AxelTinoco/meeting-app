@@ -10,8 +10,13 @@ import {
   requireUser,
 } from '../lib/auth'
 import { mxDayRange } from '../lib/mexico-time'
+import {
+  notifyBookingCancelled,
+  notifyBookingCreated,
+  notifyBookingUpdated,
+} from '../lib/slack/notify'
 import { asRecord } from './input'
-import type { BookingInput, MeetingType } from '../lib/types'
+import type { Booking, BookingInput, CurrentUser, MeetingType } from '../lib/types'
 
 /**
  * Reserva tal como la manda el cliente: sin `organizerEmail`.
@@ -131,7 +136,12 @@ export const createBookingFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => validateBookingInput(data))
   .handler(async ({ data }) => {
     const user = await requireUser()
-    return getCalendarService().createBooking({ ...data, organizerEmail: user.email })
+    const booking = await getCalendarService().createBooking({
+      ...data,
+      organizerEmail: user.email,
+    })
+    await notifyBookingCreated(booking, user.email)
+    return booking
   })
 
 /**
@@ -147,7 +157,7 @@ export const createBookingFn = createServerFn({ method: 'POST' })
 async function authorizeBooking(
   eventId: string,
   roomEmail: string,
-): Promise<{ subject: string }> {
+): Promise<{ subject: string; existing: Booking; user: CurrentUser }> {
   const user = await requireUser()
   const existing = await getCalendarService().getBooking(
     eventId,
@@ -166,6 +176,13 @@ async function authorizeBooking(
     subject: isDomainUser(existing.organizerEmail)
       ? existing.organizerEmail
       : user.email,
+    // La reserva sale de aquí en vez de descartarse: cancelar necesita el título y los
+    // invitados para el aviso de Slack, y ya se acaban de leer. Volver a pedírselos a
+    // Google sería un viaje de más, justo el que se quitó en `getTodayAvailabilityFn`.
+    existing,
+    // Quién opera, que no siempre es el organizador: un admin puede cancelar juntas
+    // ajenas, y el aviso tiene que decir quién lo hizo.
+    user,
   }
 }
 
@@ -178,11 +195,16 @@ export const updateBookingFn = createServerFn({ method: 'POST' })
     return { eventId, input: validateBookingInput(data) }
   })
   .handler(async ({ data }) => {
-    const { subject } = await authorizeBooking(data.eventId, data.input.roomEmail)
-    return getCalendarService().updateBooking(data.eventId, {
+    const { subject, user } = await authorizeBooking(
+      data.eventId,
+      data.input.roomEmail,
+    )
+    const booking = await getCalendarService().updateBooking(data.eventId, {
       ...data.input,
       organizerEmail: subject,
     })
+    await notifyBookingUpdated(booking, user.email)
+    return booking
   })
 
 /** Cancela una reserva. */
@@ -195,8 +217,13 @@ export const cancelBookingFn = createServerFn({ method: 'POST' })
     return { eventId, roomEmail }
   })
   .handler(async ({ data }) => {
-    const { subject } = await authorizeBooking(data.eventId, data.roomEmail)
+    const { subject, existing, user } = await authorizeBooking(
+      data.eventId,
+      data.roomEmail,
+    )
     await getCalendarService().cancelBooking(data.eventId, data.roomEmail, subject)
+    // Con `existing`, la de antes de borrarla: en Calendar ya no queda nada que leer.
+    await notifyBookingCancelled(existing, user.email)
     return { ok: true as const }
   })
 

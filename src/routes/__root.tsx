@@ -49,6 +49,12 @@ export const Route = createRootRoute({
         rel: 'stylesheet',
         href: appCss,
       },
+      // El isotipo de Gerundio como icono del sitio. El .ico va primero para los
+      // navegadores viejos que solo miran ese; los modernos se quedan con el PNG.
+      { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+      { rel: 'icon', type: 'image/png', href: '/icons/brand/isotipo-32.png' },
+      { rel: 'apple-touch-icon', href: '/icons/brand/isotipo-192.png' },
+      { rel: 'manifest', href: '/manifest.json' },
     ],
   }),
   shellComponent: RootDocument,

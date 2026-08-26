@@ -2,6 +2,7 @@ import { LogOut } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Avatar } from './Avatar'
 import { GrndIcon } from './GrndIcon'
+import { Isotipo } from './Isotipo'
 import { springSnappy } from '../lib/motion'
 import type { GrndIconName } from './GrndIcon'
 import type { SessionUser } from '../lib/types'
@@ -24,9 +25,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-ink-200 bg-ink-50/60 px-3 py-5">
       <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
-          <GrndIcon name="ideas" size={20} />
-        </div>
+        <Isotipo size={40} />
         <div className="leading-tight">
           <p className="text-base font-bold text-brand-500">Gerundio</p>
           <p className="text-xs text-ink-500">Salas</p>
