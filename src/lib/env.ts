@@ -91,10 +91,43 @@ export function getSessionSecret(): string {
   return secret
 }
 
+/**
+ * URL del trigger de webhook del workflow de Slack. Lanza si falta.
+ *
+ * El workflow declara DOS variables: `text` con el mensaje ya formateado, e `id_user` de
+ * tipo "Usuario de Slack" con el correo de quien se menciona.
+ *
+ * Solo debe llamarse cuando `hasSlackWebhook()` es true. A diferencia de Google, que es
+ * obligatorio para que la app arranque, esto es opcional: sin la URL la app funciona
+ * igual, simplemente no avisa a nadie.
+ *
+ * Es un secreto: quien la tenga puede publicar en el canal en nombre del workflow.
+ */
+export function getSlackWebhookUrl(): string {
+  const url = readEnv('SLACK_WEBHOOK_URL')?.trim()
+
+  if (!url) {
+    throw new Error('Falta SLACK_WEBHOOK_URL.')
+  }
+  if (!url.startsWith('https://hooks.slack.com/')) {
+    // Una URL de otro host casi siempre es un copy-paste equivocado (la del canal, la del
+    // workflow en la UI). Mejor gritarlo al arrancar que mandarle las juntas a un tercero.
+    throw new Error(
+      'SLACK_WEBHOOK_URL no parece un trigger de Slack (debe empezar con https://hooks.slack.com/).',
+    )
+  }
+  return url
+}
+
+/** true si el aviso a Slack está configurado. Si es false, no se avisa y ya. */
+export function hasSlackWebhook(): boolean {
+  return Boolean(readEnv('SLACK_WEBHOOK_URL')?.trim())
+}
+
 /** true si hay credenciales de service account configuradas (activa la integración real). */
 export function hasGoogleCredentials(): boolean {
   return Boolean(
     readEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL') &&
-      readEnv('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY'),
+    readEnv('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY'),
   )
 }
