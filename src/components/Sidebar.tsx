@@ -11,14 +11,14 @@ interface NavItem {
   icon: GrndIconName
   label: string
   active?: boolean
+  /** Sección aún sin construir: se muestra, pero no se puede entrar. */
+  wip?: boolean
 }
 
 const NAV: NavItem[] = [
   { icon: 'mapeando', label: 'Mapa', active: true },
-  { icon: 'midiendo', label: 'Timeline' },
-  { icon: 'jerarquizando', label: 'Directorio' },
-  { icon: 'disenando', label: 'Ajustes' },
-  { icon: 'entendiendo', label: 'Soporte' },
+  { icon: 'midiendo', label: 'Timeline', wip: true },
+  { icon: 'jerarquizando', label: 'Directorio', wip: true },
 ]
 
 export function Sidebar({ user }: { user: SessionUser }) {
@@ -37,14 +37,18 @@ export function Sidebar({ user }: { user: SessionUser }) {
           <motion.button
             key={item.label}
             type="button"
+            disabled={item.wip}
             aria-current={item.active ? 'page' : undefined}
-            whileHover={{ x: 3 }}
-            whileTap={{ scale: 0.97 }}
+            title={item.wip ? 'En construcción' : undefined}
+            whileHover={item.wip ? undefined : { x: 3 }}
+            whileTap={item.wip ? undefined : { scale: 0.97 }}
             transition={springSnappy}
             className={
               item.active
                 ? 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white'
-                : 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-200/60'
+                : item.wip
+                  ? 'relative flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-400'
+                  : 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-200/60'
             }
           >
             {/* La píldora activa es un elemento compartido: cuando estas
@@ -62,6 +66,11 @@ export function Sidebar({ user }: { user: SessionUser }) {
             )}
             <GrndIcon name={item.icon} size={18} className="relative" />
             <span className="relative">{item.label}</span>
+            {item.wip && (
+              <span className="relative ml-auto rounded-md border border-ink-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-ink-400 uppercase">
+                Pronto
+              </span>
+            )}
           </motion.button>
         ))}
       </nav>
