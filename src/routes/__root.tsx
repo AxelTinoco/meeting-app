@@ -11,9 +11,15 @@ import { MotionConfig } from 'motion/react'
 import { getSessionUserFn } from '../server/auth'
 import appCss from '../styles.css?url'
 
-/** Rutas que no exigen sesión (si no, el login sería un ciclo de redirecciones). */
+/** Rutas que no exigen sesión (si no, el login sería un ciclo de redirecciones).
+    `/presentacion` es la excepción provisional: se enseña en juntas desde el
+    proyector y no lee datos de la app, así que no vale la pena pedir sesión. */
 function isPublicPath(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/api/')
+  return (
+    pathname === '/login' ||
+    pathname === '/presentacion' ||
+    pathname.startsWith('/api/')
+  )
 }
 
 export const Route = createRootRoute({

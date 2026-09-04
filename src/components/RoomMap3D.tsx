@@ -10,7 +10,11 @@ import {
 import { MapZoomButton } from './MapZoomButton'
 import { GrndIcon } from './GrndIcon'
 import { RoomIcon } from './RoomIcon'
-import { ROOM_STATUS_STYLES, ROOM_STATUS_VARS, deriveRoomView } from '../lib/dashboard'
+import {
+  ROOM_STATUS_STYLES,
+  ROOM_STATUS_VARS,
+  deriveRoomView,
+} from '../lib/dashboard'
 import { groupRoomsByFloor } from '../lib/floors'
 import { fixturesForFloor } from '../lib/floorplan'
 import { mxTimeLabel } from '../lib/mexico-time'
@@ -180,6 +184,8 @@ interface RoomMap3DProps {
   bookings: Booking[]
   now: Date
   onSelect: (room: Room) => void
+  /** Se llama con el primer frame ya pintado. Ver `onCreated` más abajo. */
+  onReady?: () => void
 }
 
 export default function RoomMap3D({
@@ -187,6 +193,7 @@ export default function RoomMap3D({
   bookings,
   now,
   onSelect,
+  onReady,
 }: RoomMap3DProps) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
 
@@ -233,6 +240,12 @@ export default function RoomMap3D({
         // 60 fps en una pantalla que puede quedarse abierta todo el día.
         frameloop="demand"
         gl={{ antialias: true, alpha: true }}
+        /* Que el chunk de three haya bajado (lo que resuelve el Suspense) no
+           quiere decir que haya algo que ver: falta crear el contexto WebGL y
+           pintar. Avisamos un frame después de `onCreated` — con `frameloop
+           demand` ese es el primer (y por un rato el único) render — para que
+           quien esté esperando no descubra el canvas todavía en blanco. */
+        onCreated={onReady && (() => requestAnimationFrame(() => onReady()))}
         // El encuadre se calcula desde el `target` (el centro de la pila), no en
         // absoluto: así añadir una planta a `FLOOR_ORDER` sube la cámara sola en
         // vez de dejar el edificio saliéndose por arriba.
@@ -373,10 +386,7 @@ function Facade({ terraza }: { terraza: boolean }) {
         <>
           {/* Una sola caja de vidrio en vez de cuatro paños: con `DoubleSide` se ven
               igual las dos caras y es una malla en lugar de cuatro. */}
-          <mesh
-            position={[0, SILL_H + GLASS_H / 2, 0]}
-            raycast={() => null}
-          >
+          <mesh position={[0, SILL_H + GLASS_H / 2, 0]} raycast={() => null}>
             <boxGeometry args={[FLOOR_W, GLASS_H, FLOOR_D]} />
             <meshStandardMaterial
               color={cssColor('--color-cielo-300')}
@@ -472,7 +482,9 @@ function Floor({ floor, bookings, now, isTop, onSelect }: FloorProps) {
           // recorta a las que quedan detrás: el edificio se veía a trozos al girar.
           depthWrite={false}
         />
-        <Edges color={cssColor(empty ? '--color-ink-200' : '--color-ink-300')} />
+        <Edges
+          color={cssColor(empty ? '--color-ink-200' : '--color-ink-300')}
+        />
       </mesh>
 
       <Facade terraza={isTop} />

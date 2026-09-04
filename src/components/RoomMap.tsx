@@ -28,14 +28,25 @@ interface RoomMapProps {
 }
 
 /** Lienzo espacial con las salas colocadas según su posición en el mapa. */
-export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps) {
+export function RoomMap({
+  rooms,
+  bookings,
+  now,
+  user,
+  onChanged,
+}: RoomMapProps) {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [creatingRoom, setCreatingRoom] = useState(false)
   /* El 3D abre por default, pero el plano NO deja de ser lo que pinta el servidor:
-     va de fallback del Suspense (ver abajo). O sea, el HTML inicial sigue trayendo
-     las salas y el 3D las releva cuando termina de cargar — nunca hay un hueco en
-     blanco, que es lo que la app se propuso evitar desde el principio. */
+     se queda debajo mientras el 3D carga (ver abajo). O sea, el HTML inicial sigue
+     trayendo las salas y el 3D las releva cuando termina de cargar — nunca hay un
+     hueco en blanco, que es lo que la app se propuso evitar desde el principio. */
   const [view, setView] = useState<MapView>('3d')
+  /* Pasa a `true` cuando el 3D ya pintó su primer frame, no cuando bajó su chunk.
+     Hasta entonces el plano se queda debajo (atenuado, sin recibir clics) con un
+     loader encima: así el relevo se lee como "esto está cargando" y no como que
+     la vista cambió sola a los dos segundos. */
+  const [ready3d, setReady3d] = useState(false)
   const isAdmin = user.role === 'admin'
 
   /* Desde que las coordenadas son por planta, `room.map` solo tiene sentido dentro de
@@ -62,7 +73,16 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
         }}
       />
 
-      <MapViewSwitch view={view} onChange={setView} />
+      <MapViewSwitch
+        view={view}
+        onChange={(next) => {
+          // Volver del plano al 3D remonta el canvas: el chunk ya está en caché
+          // pero el contexto WebGL y la escena se rehacen. Se vuelve a esperar al
+          // primer frame en vez de enseñar el canvas todavía vacío.
+          if (next === 'plano') setReady3d(false)
+          setView(next)
+        }}
+      />
 
       {/* Solo en el plano: en 3D las cinco plantas se ven a la vez y elegir una no
           querría decir nada. */}
@@ -89,27 +109,50 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
           <p className="card-empty px-6 py-8">No hay salas configuradas.</p>
         </div>
       ) : view === '3d' ? (
-        /* El plano hace de fallback, y no un "Cargando…": el servidor no puede
-           pintar WebGL, así que sin esto el mapa saldría en blanco en cada carga
-           hasta que baje el chunk de three (~929 KB). Con el plano ahí, el HTML
-           del servidor sigue trayendo las salas y el 3D las releva al llegar. */
-        <Suspense
-          fallback={
+        /* La espera NO es una pantalla en blanco ni un cambio de vista a media
+           carga: el plano se pinta igual (es lo único que el servidor puede
+           mandar — WebGL no existe ahí) pero atenuado y detrás de un loader,
+           y el 3D aparece encima cuando de verdad tiene algo que enseñar.
+           Antes el plano se veía nítido y usable y de pronto lo relevaba el 3D:
+           el salto se leía como un bug, no como una carga. */
+        <>
+          <div
+            aria-hidden={ready3d}
+            className={`absolute inset-0 transition-opacity duration-300 ${
+              ready3d
+                ? 'pointer-events-none opacity-0'
+                : 'pointer-events-none opacity-30 blur-[1px]'
+            }`}
+          >
             <FloorPlan
               floor={activeFloor}
               bookings={bookings}
               now={now}
               onSelect={(r) => setSelectedEmail(r.resourceEmail)}
             />
-          }
-        >
-          <RoomMap3D
-            rooms={rooms}
-            bookings={bookings}
-            now={now}
-            onSelect={(r) => setSelectedEmail(r.resourceEmail)}
-          />
-        </Suspense>
+          </div>
+
+          {!ready3d && <Map3DLoader />}
+
+          {/* `fallback={null}`: quien hace de fallback visible es el bloque de
+              arriba, que además sigue montado mientras el canvas arranca — un
+              hueco que el Suspense por sí solo no cubre. */}
+          <Suspense fallback={null}>
+            <div
+              className={`absolute inset-0 transition-opacity duration-300 ${
+                ready3d ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <RoomMap3D
+                rooms={rooms}
+                bookings={bookings}
+                now={now}
+                onSelect={(r) => setSelectedEmail(r.resourceEmail)}
+                onReady={() => setReady3d(true)}
+              />
+            </div>
+          </Suspense>
+        </>
       ) : (
         <>
           <FloorPlan
@@ -148,6 +191,26 @@ export function RoomMap({ rooms, bookings, now, user, onChanged }: RoomMapProps)
           />
         )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+/**
+ * Loader de la vista 3D. Pequeño y al centro, sobre el plano atenuado: dice que
+ * falta algo por llegar sin tapar lo que ya se puede leer.
+ */
+function Map3DLoader() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+      <div className="card flex items-center gap-2.5 px-4 py-2.5">
+        <span
+          // Un anillo con un cuarto en color: gira sin necesitar keyframes
+          // propios. `motion-reduce` lo deja quieto — sigue leyéndose como
+          // indicador, solo que sin movimiento.
+          className="size-4 animate-spin rounded-full border-2 border-ink-200 border-t-brand-500 motion-reduce:animate-none"
+        />
+        <span className="text-sm font-medium text-ink-600">Cargando 3D…</span>
+      </div>
     </div>
   )
 }
